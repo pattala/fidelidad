@@ -5,6 +5,7 @@
     "description": "Programa de fidelización de RAMPET",
     "companyName": "RAMPET",
     "logoUrl": "images/mi_logo.png",
+    "apiUrl": "https://fidelidad-api.vercel.app",
     "theme": {
         "primary": "#007bff",
         "secondary": "#333333",
