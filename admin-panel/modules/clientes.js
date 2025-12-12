@@ -20,7 +20,7 @@ function _debounce(fn, ms = 250) {
 function _regCounterEl() {
   // evita el problema de ID duplicado en index.html
   return document.getElementById('contador-nuevos-registros')
-      || document.getElementById('reg-total');
+    || document.getElementById('reg-total');
 }
 function _safeDateStr(rawFecha) {
   if (!rawFecha) return '—';
@@ -47,7 +47,7 @@ function __matchSearch(c, term) {
 
 function __origenLabel(origenKey) {
   const v = (origenKey || 'unknown').toLowerCase();
-  if (v.includes('pwa'))   return '<span class="badge" style="background:#0ea5e9">PWA</span>';
+  if (v.includes('pwa')) return '<span class="badge" style="background:#0ea5e9">PWA</span>';
   if (v.includes('panel') || v.includes('admin')) return '<span class="badge" style="background:#22c55e">Panel</span>';
   return '<span class="badge" style="background:#9ca3af">—</span>';
 }
@@ -55,8 +55,8 @@ function __origenLabel(origenKey) {
 // Chip visual Geo ON/OFF
 function __geoBadge(isOn, updatedStr) {
   const baseStyle = 'display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:12px;margin-left:6px;';
-  const onStyle   = 'background:#dcfce7;color:#166534;';
-  const offStyle  = 'background:#e5e7eb;color:#374151;';
+  const onStyle = 'background:#dcfce7;color:#166534;';
+  const offStyle = 'background:#e5e7eb;color:#374151;';
   const title = isOn
     ? `Geo: ACTIVA${updatedStr ? ' • act. ' + updatedStr : ''}`
     : 'Geo: desactivada';
@@ -124,7 +124,7 @@ function __renderRegistros(rows) {
         const id = btn.dataset.id;
         // fallback a cache local si appData aún no está poblado
         const cli = (appData.clientes && appData.clientes.find(c => c.id === id))
-                 || (__registrosAll.find(c => c.id === id));
+          || (__registrosAll.find(c => c.id === id));
         if (!cli) return UI.showToast('No se encontró el cliente.', 'warning');
         UI.openTab?.('ficha');
         const ident = (cli.numeroSocio ?? cli.dni ?? '').toString();
@@ -148,9 +148,9 @@ function __renderRegistros(rows) {
 function __buildSuggestTokens(c) {
   const tokens = [];
   if (c.numeroSocio) tokens.push(String(c.numeroSocio));
-  if (c.dni)         tokens.push(String(c.dni));
-  if (c.nombre)      tokens.push(String(c.nombre));
-  if (c.email)       tokens.push(String(c.email));
+  if (c.dni) tokens.push(String(c.dni));
+  if (c.nombre) tokens.push(String(c.nombre));
+  if (c.email) tokens.push(String(c.email));
   return tokens;
 }
 function __updateRegSuggestions() {
@@ -179,10 +179,10 @@ function __updateRegSuggestions() {
 
 function __applyRegistrosFilters() {
   const sel = document.getElementById('reg-origin'); // 'all' | 'pwa' | 'panel'
-  const q   = document.getElementById('reg-search');
+  const q = document.getElementById('reg-search');
 
   const origen = (sel?.value || 'all').toLowerCase();
-  const term   = q?.value || '';
+  const term = q?.value || '';
 
   const filtered = __registrosAll.filter(c => {
     const okOrigen = (origen === 'all') ? true : (c.__origenKey === origen);
@@ -219,7 +219,7 @@ async function __mapDoc(d) {
     data.created_at || null;
 
   // geo flags
-  const geoEnabled   = !!(data?.config?.geoEnabled);
+  const geoEnabled = !!(data?.config?.geoEnabled);
   const geoUpdatedAt = data?.config?.geoUpdatedAt || null;
 
   return {
@@ -236,11 +236,11 @@ async function __mapDoc(d) {
 }
 
 async function __subscribeRegistros() {
-  if (__registrosUnsub) { try { __registrosUnsub(); } catch {} __registrosUnsub = null; }
+  if (__registrosUnsub) { try { __registrosUnsub(); } catch { } __registrosUnsub = null; }
 
   // sanity check de DOM (esperar tabla + tbody)
   const hasTable = document.getElementById('tabla-registros');
-  const hasBody  = document.getElementById('tabla-registros-body');
+  const hasBody = document.getElementById('tabla-registros-body');
   if (!hasTable || !hasBody) {
     console.warn('[registros] Falta tabla o tbody. Reintento de suscripción…');
     setTimeout(__subscribeRegistros, 120);
@@ -254,7 +254,7 @@ async function __subscribeRegistros() {
   try {
     const first = await q.limit(50).get();
     const preRows = await Promise.all(first.docs.map(__mapDoc));
-    preRows.sort((a,b) => (b.__sortMs||0) - (a.__sortMs||0));
+    preRows.sort((a, b) => (b.__sortMs || 0) - (a.__sortMs || 0));
     __registrosAll = preRows;
     __applyRegistrosFilters();
   } catch (e) {
@@ -267,10 +267,10 @@ async function __subscribeRegistros() {
   }, async (snap) => {
     console.log('[registros] snapshot size =', snap.size, ' fromCache=', snap.metadata?.fromCache);
     const rows = await Promise.all(snap.docs.map(__mapDoc));
-    rows.sort((a,b) => (b.__sortMs||0) - (a.__sortMs||0));
+    rows.sort((a, b) => (b.__sortMs || 0) - (a.__sortMs || 0));
     __registrosAll = rows;
     __applyRegistrosFilters();
-    try { __updateRegSuggestions(); } catch {}
+    try { __updateRegSuggestions(); } catch { }
   }, (err) => {
     console.warn('[registros] onSnapshot error:', err);
   });
@@ -304,7 +304,7 @@ export function initRegistrosTab() {
 
   // Autocomplete predictivo (si existe)
   document.getElementById('reg-search')?.addEventListener('input', () => {
-    try { __updateRegSuggestions(); } catch {}
+    try { __updateRegSuggestions(); } catch { }
     __applyRegistrosFiltersDebounced();
   });
   document.getElementById('reg-search')?.addEventListener('keydown', (e) => {
@@ -312,7 +312,7 @@ export function initRegistrosTab() {
   });
 
   // Esperar a que exista la tabla y el tbody antes de suscribir
-  (function ensureTableThenSubscribe(){
+  (function ensureTableThenSubscribe() {
     if (document.getElementById('tabla-registros') && document.getElementById('tabla-registros-body')) {
       console.log('[registros] tabla encontrada, suscribiendo…');
       __subscribeRegistros();
@@ -337,7 +337,7 @@ function generarNuevoNumeroSocio() {
 async function _assignNumeroSocio(docId, sendWelcome = false) {
   try {
     const NOTIF_BASE = (window.__RAMPET__ && window.__RAMPET__.NOTIF_BASE) || '';
-    const API_KEY    = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
+    const API_KEY = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
 
     const body = { docId, sendWelcome };
     console.log('[assign-socio-number] request body:', body);
@@ -377,7 +377,7 @@ function _composeAddressLine(components) {
   // Calle y número + piso/depto opcionales
   if (c.calle && c.numero) {
     let street = `${c.calle} ${c.numero}`;
-    if (c.piso)  street += `, Piso ${c.piso}`;
+    if (c.piso) street += `, Piso ${c.piso}`;
     if (c.depto) street += `, Depto ${c.depto}`;
     parts.push(street);
   } else if (c.calle) {
@@ -385,7 +385,7 @@ function _composeAddressLine(components) {
   }
 
   // CP + localidad/barrio
-  const cp  = (c.codigoPostal || '').trim();
+  const cp = (c.codigoPostal || '').trim();
   const loc = (c.localidad || c.barrio || '').trim();
   if (cp || loc) {
     const cpLoc = [cp, loc].filter(Boolean).join(' ');
@@ -416,43 +416,43 @@ function _computeDomicilioFromForm() {
   const $ = (id) => document.getElementById(id);
 
   const provincia = ($('nuevo-provincia')?.value || '').trim();
-  const partido   = ($('nuevo-partido')?.value || '').trim();
+  const partido = ($('nuevo-partido')?.value || '').trim();
 
   // Localidad/Barrio depende de qué control está visible
   const locSelect = $('nuevo-localidad-select');
-  const locInput  = $('nuevo-localidad-input');
+  const locInput = $('nuevo-localidad-input');
   const localidadBarrio = (
     (locSelect && locSelect.style.display !== 'none' && locSelect.value) ||
-    (locInput  &&  locInput.style.display  !== 'none' && locInput.value)  ||
+    (locInput && locInput.style.display !== 'none' && locInput.value) ||
     ''
   ).trim();
 
   const components = {
-    calle:        ($('nuevo-calle')?.value || '').trim(),
-    numero:       ($('nuevo-numero')?.value || '').trim(),
-    piso:         ($('nuevo-piso')?.value || '').trim(),
-    depto:        ($('nuevo-depto')?.value || '').trim(),
+    calle: ($('nuevo-calle')?.value || '').trim(),
+    numero: ($('nuevo-numero')?.value || '').trim(),
+    piso: ($('nuevo-piso')?.value || '').trim(),
+    depto: ($('nuevo-depto')?.value || '').trim(),
     provincia,
     partido,
-    localidad:    '',
-    barrio:       '',
+    localidad: '',
+    barrio: '',
     codigoPostal: ($('nuevo-cp')?.value || '').trim(),
-    pais:         ($('nuevo-pais')?.value || '').trim(),
-    referencia:   ($('nuevo-referencia')?.value || '').trim(),
+    pais: ($('nuevo-pais')?.value || '').trim(),
+    referencia: ($('nuevo-referencia')?.value || '').trim(),
   };
 
   // Reglas por provincia
   if (provincia === 'CABA') {
-    components.barrio    = localidadBarrio || '';
+    components.barrio = localidadBarrio || '';
     components.localidad = components.barrio;
-    components.partido   = '';
+    components.partido = '';
   } else if (provincia === 'Buenos Aires') {
     components.localidad = localidadBarrio || '';
-    components.barrio    = '';
+    components.barrio = '';
   } else {
     components.localidad = localidadBarrio || '';
-    components.barrio    = '';
-    components.partido   = '';
+    components.barrio = '';
+    components.partido = '';
   }
 
   // ¿Hay algo cargado?
@@ -462,7 +462,7 @@ function _computeDomicilioFromForm() {
   // Completitud mínima
   const hasStreet = !!(components.calle && components.numero);
   const hasGeoKey =
-    (provincia === 'CABA'         && !!components.barrio) ||
+    (provincia === 'CABA' && !!components.barrio) ||
     (provincia === 'Buenos Aires' && !!components.partido && !!components.localidad) ||
     (provincia && !!components.localidad);
 
@@ -476,8 +476,8 @@ function _computeDomicilioFromForm() {
 export function initDomicilioForm() {
   const selProv = _qs('nuevo-provincia');
   const selPart = _qs('nuevo-partido');
-  const selLoc  = _qs('nuevo-localidad-select');
-  const inpLoc  = _qs('nuevo-localidad-input');
+  const selLoc = _qs('nuevo-localidad-select');
+  const inpLoc = _qs('nuevo-localidad-input');
   const wrapPart = _qs('wrap-partido');
 
   function setPreview() {
@@ -575,7 +575,7 @@ export function initDomicilioForm() {
   selProv?.addEventListener('change', onProvinciaChange);
   selPart?.addEventListener('change', onPartidoChange);
 
-  ['nuevo-calle','nuevo-numero','nuevo-piso','nuevo-depto','nuevo-cp','nuevo-pais','nuevo-referencia']
+  ['nuevo-calle', 'nuevo-numero', 'nuevo-piso', 'nuevo-depto', 'nuevo-cp', 'nuevo-pais', 'nuevo-referencia']
     .forEach(id => _qs(id)?.addEventListener('input', setPreview));
   selLoc?.addEventListener('change', setPreview);
   inpLoc?.addEventListener('input', setPreview);
@@ -589,16 +589,16 @@ export function initDomicilioForm() {
 export async function registrarCliente() {
   const get = (id) => document.getElementById(id)?.value?.trim() || '';
 
-  const nombre           = get('nuevo-nombre');
-  const dni              = get('nuevo-dni');
-  const email            = get('nuevo-email');
-  const telefono         = get('nuevo-telefono');
-  const fechaNacimiento  = get('nuevo-fecha-nacimiento') || '';
+  const nombre = get('nuevo-nombre');
+  const dni = get('nuevo-dni');
+  const email = get('nuevo-email');
+  const telefono = get('nuevo-telefono');
+  const fechaNacimiento = get('nuevo-fecha-nacimiento') || '';
   const fechaInscripcion = get('nuevo-fecha-inscripcion') || new Date().toISOString().split('T')[0];
 
-  if (!nombre)  return UI.showToast('Falta el nombre.', 'error');
-  if (!dni)     return UI.showToast('Falta el DNI.', 'error');
-  if (!email)   return UI.showToast('Falta el email.', 'error');
+  if (!nombre) return UI.showToast('Falta el nombre.', 'error');
+  if (!dni) return UI.showToast('Falta el DNI.', 'error');
+  if (!email) return UI.showToast('Falta el email.', 'error');
 
   // Domicilio del Alta
   const dom = _computeDomicilioFromForm();
@@ -618,7 +618,7 @@ export async function registrarCliente() {
   console.log('[domicilio] payload a enviar →', { domicilio, addressLine });
 
   const NOTIF_BASE = (window.__RAMPET__ && window.__RAMPET__.NOTIF_BASE) || '';
-  const API_KEY    = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
+  const API_KEY = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
   const useCreateUserAPI = appData?.config?.featureFlags?.useCreateUserAPI !== false; // default: true
 
   const btn = document.getElementById('registrar-cliente-btn');
@@ -626,7 +626,7 @@ export async function registrarCliente() {
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
 
   const tycVersion = appData?.config?.principal?.tycVersion || null;
-  const tycUrl     = appData?.config?.principal?.tycUrl || null;
+  const tycUrl = appData?.config?.principal?.tycUrl || null;
 
   try {
     if (useCreateUserAPI) {
@@ -648,13 +648,13 @@ export async function registrarCliente() {
       });
 
       if (!createRes.ok) {
-        const err = await createRes.json().catch(()=> ({}));
+        const err = await createRes.json().catch(() => ({}));
         console.error('[create-user] fail', createRes.status, err);
-        return UI.showToast('No se pudo crear el usuario (Auth).', 'error');
+        return UI.showToast(`Error API (${createRes.status}): ${err.error || err.message || 'Fallo desconocido'}`, 'error', 8000);
       }
 
-      const createJson = await createRes.json().catch(()=> ({}));
-      const docId   = createJson?.firestore?.docId || null;
+      const createJson = await createRes.json().catch(() => ({}));
+      const docId = createJson?.firestore?.docId || null;
       const authUID = createJson?.auth?.uid || null;
 
       if (!docId || !authUID) {
@@ -681,7 +681,7 @@ export async function registrarCliente() {
 
         await db.collection('clientes').doc(docId).set({
           dni,
-          fechaNacimiento:  fechaNacimiento || null,
+          fechaNacimiento: fechaNacimiento || null,
           fechaInscripcion: fechaInscripcion || null,
           ...(domicilio ? {
             domicilio: {
@@ -697,7 +697,7 @@ export async function registrarCliente() {
 
           source: 'panel',
           metadata: {
-            ...( (typeof createJson?.firestore?.metadata === 'object') ? createJson.firestore.metadata : {} ),
+            ...((typeof createJson?.firestore?.metadata === 'object') ? createJson.firestore.metadata : {}),
             createdFrom: 'panel',
             sourceVersion: 'panel@1.0.0'
           },
@@ -740,7 +740,7 @@ export async function registrarCliente() {
           source: 'panel',
           creadoDesde: 'panel',
           metadata: {
-            ...( (typeof appData?.metadata === 'object') ? appData.metadata : {} ),
+            ...((typeof appData?.metadata === 'object') ? appData.metadata : {}),
             createdFrom: 'panel',
             sourceVersion: 'panel@1.0.0'
           }
@@ -839,9 +839,9 @@ export async function registrarCliente() {
 
     // Limpieza de formulario
     [
-      'nuevo-nombre','nuevo-dni','nuevo-email','nuevo-telefono','nuevo-fecha-nacimiento',
-      'nuevo-calle','nuevo-numero','nuevo-piso','nuevo-depto',
-      'nuevo-cp','nuevo-pais','nuevo-referencia'
+      'nuevo-nombre', 'nuevo-dni', 'nuevo-email', 'nuevo-telefono', 'nuevo-fecha-nacimiento',
+      'nuevo-calle', 'nuevo-numero', 'nuevo-piso', 'nuevo-depto',
+      'nuevo-cp', 'nuevo-pais', 'nuevo-referencia'
     ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 
     const prov = document.getElementById('nuevo-provincia');
@@ -851,10 +851,10 @@ export async function registrarCliente() {
     const locSel = document.getElementById('nuevo-localidad-select');
     const locInp = document.getElementById('nuevo-localidad-input');
     if (locSel) { locSel.value = ''; locSel.innerHTML = '<option value="">—</option>'; }
-    if (locInp)  locInp.value = '';
+    if (locInp) locInp.value = '';
 
     const f = document.getElementById('nuevo-fecha-inscripcion');
-    if (f) try { f.valueAsDate = new Date(); } catch {}
+    if (f) try { f.valueAsDate = new Date(); } catch { }
 
     const prev = document.getElementById('preview-addressLine');
     if (prev) prev.textContent = '—';
@@ -886,7 +886,7 @@ export function obtenerFechaProximoVencimiento(cliente) {
   if (!cliente?.historialPuntos || cliente.historialPuntos.length === 0) return null;
 
   let fechaMasProxima = null;
-  const hoy = new Date(); hoy.setUTCHours(0,0,0,0);
+  const hoy = new Date(); hoy.setUTCHours(0, 0, 0, 0);
 
   cliente.historialPuntos.forEach(grupo => {
     if (grupo.puntosDisponibles > 0 && grupo.estado !== 'Caducado') {
@@ -957,7 +957,7 @@ export async function eliminarClienteHandler(clienteId) {
 
   try {
     const NOTIF_BASE = (window.__RAMPET__ && window.__RAMPET__.NOTIF_BASE) || '';
-    const API_KEY    = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
+    const API_KEY = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
 
     const response = await fetch(`${NOTIF_BASE}/api/delete-user`, {
       method: 'POST',
@@ -1107,7 +1107,7 @@ export function _computeDomicilioFromFormWithPrefix(prefix = '') {
   const p = prefix || '';
   const get = (id) => document.getElementById(p + id);
   const provincia = (get('provincia')?.value || '').trim();
-  const partido   = (get('partido')?.value || '').trim();
+  const partido = (get('partido')?.value || '').trim();
 
   const locSel = get('localidad-select');
   const locInp = get('localidad-input');
@@ -1118,31 +1118,31 @@ export function _computeDomicilioFromFormWithPrefix(prefix = '') {
   ).trim();
 
   const components = {
-    calle:        (get('calle')?.value || '').trim(),
-    numero:       (get('numero')?.value || '').trim(),
-    piso:         (get('piso')?.value || '').trim(),
-    depto:        (get('depto')?.value || '').trim(),
+    calle: (get('calle')?.value || '').trim(),
+    numero: (get('numero')?.value || '').trim(),
+    piso: (get('piso')?.value || '').trim(),
+    depto: (get('depto')?.value || '').trim(),
     provincia,
     partido,
-    localidad:    '',
-    barrio:       '',
+    localidad: '',
+    barrio: '',
     codigoPostal: (get('cp')?.value || '').trim(),
-    pais:         (get('pais')?.value || '').trim(),
-    referencia:   (get('referencia')?.value || '').trim(),
+    pais: (get('pais')?.value || '').trim(),
+    referencia: (get('referencia')?.value || '').trim(),
   };
 
   // [FIX] reglas por provincia (llaves balanceadas)
   if (provincia === 'CABA') {
-    components.barrio    = localidadBarrio || '';
+    components.barrio = localidadBarrio || '';
     components.localidad = components.barrio; // espejo
-    components.partido   = '';
+    components.partido = '';
   } else if (provincia === 'Buenos Aires') {
     components.localidad = localidadBarrio || '';
-    components.barrio    = '';
+    components.barrio = '';
   } else {
     components.localidad = localidadBarrio || '';
-    components.barrio    = '';
-    components.partido   = '';
+    components.barrio = '';
+    components.partido = '';
   }
 
   const any = Object.values(components).some(Boolean);
@@ -1168,8 +1168,8 @@ export function initDomicilioFormWithPrefix(prefix = '') {
   const selProv = get('provincia');
   const selPart = get('partido');
   const wrapPart = document.getElementById(`wrap-${pNoDash}-partido`);
-  const selLoc   = get('localidad-select');
-  const inpLoc   = get('localidad-input');
+  const selLoc = get('localidad-select');
+  const inpLoc = get('localidad-input');
 
   const previewEl = document.getElementById(p ? 'preview-addressLine-edit' : 'preview-addressLine');
 
@@ -1255,7 +1255,7 @@ export function initDomicilioFormWithPrefix(prefix = '') {
 
   selProv?.addEventListener('change', onProvinciaChange);
   selPart?.addEventListener('change', onPartidoChange);
-  ['calle','numero','piso','depto','cp','pais','referencia'].forEach(id => {
+  ['calle', 'numero', 'piso', 'depto', 'cp', 'pais', 'referencia'].forEach(id => {
     get(id)?.addEventListener('input', setPreview);
   });
   selLoc?.addEventListener('change', setPreview);
