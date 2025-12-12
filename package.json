@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "build:rampet": "node scripts/generate-client.js --client=rampet",
+    "build:demo": "node scripts/generate-client.js --client=demo"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0"
+  }
+}

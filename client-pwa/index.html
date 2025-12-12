@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club RAMPET - Mis Puntos</title>
+
+  <meta name="theme-color" content="#007bff" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="./favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="images/mi_logo_192.png" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Carga de Configuración (White Label) -->
+  <script src="config.js"></script>
+  <script>
+    // Aplicar configuración inicial (Título, Favicon, Logo, H1) al cargar
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.APP_CONFIG) {
+        // Título pestaña
+        document.title = window.APP_CONFIG.appName || document.title;
+
+        // H1 header
+        const h1 = document.querySelector('header h1');
+        if (h1) h1.textContent = window.APP_CONFIG.appName;
+
+        // Logo header
+        const logo = document.querySelector('header img.logo');
+        if (logo && window.APP_CONFIG.logoUrl) {
+          logo.src = window.APP_CONFIG.logoUrl;
+        }
+      }
+    });
+  </script>
+
+
+
+  <!-- Firebase compat -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-messaging-compat.js"></script>
+
+  <script type="module" src="./app.js"></script>
+</head>
+
+<body>
+  <!-- Modal perfil / editar datos -->
+  <div id="profile-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-content" style="max-width:520px;">
+      <span id="profile-close" class="modal-close-btn">×</span>
+      <h2>Mi perfil</h2>
+
+      <div class="form-group">
+        <div>
+          <label for="prof-nombre">Nombre completo</label>
+          <input id="prof-nombre" type="text" placeholder="Nombre completo">
+        </div>
+
+        <div>
+          <label for="prof-telefono">Teléfono</label>
+          <input id="prof-telefono" type="tel" placeholder="Sólo números">
+        </div>
+
+        <div>
+          <label for="prof-fecha">Fecha de nacimiento</label>
+          <input id="prof-fecha" type="date">
+        </div>
+
+        <div>
+          <label for="prof-dni">DNI</label>
+          <input id="prof-dni" type="text" disabled>
+        </div>
+
+        <div>
+          <label for="prof-email">Email</label>
+          <input id="prof-email" type="email" disabled>
+        </div>
+      </div>
+
+      <!-- 🔼 Domicilio primero -->
+      <div class="card prefs-card" style="margin-top:8px;">
+        <h3 style="margin-top:0;">Domicilio</h3>
+        <div id="prof-address-summary" class="profile-address-summary">—</div>
+        <div style="display:flex;justify-content:flex-end;">
+          <button id="prof-edit-address-btn" class="secondary-btn" type="button">Editar domicilio</button>
+        </div>
+      </div>
+
+      <!-- 🔽 Preferencias último -->
+      <div class="card prefs-card" style="margin-top:8px;">
+        <h3 style="margin-top:0;">Preferencias</h3>
+        <label class="profile-consent">
+          <input id="prof-consent-notif" type="checkbox">
+          <span>Recibir <strong>avisos de descuentos y novedades</strong></span>
+        </label>
+        <label class="profile-consent">
+          <input id="prof-consent-geo" type="checkbox">
+          <span>Activar <strong>beneficios en mi zona</strong></span>
+        </label>
+        <p class="small-note">Podés cambiar estas opciones cuando quieras.</p>
+      </div>
+
+      <div class="modal-actions" style="display:flex; gap:10px; justify-content:flex-end; margin-top:12px;">
+        <button id="prof-cancel" class="secondary-btn" type="button">Cancelar</button>
+        <button id="prof-save" class="primary-btn" type="button">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <div class="container">
+    <header>
+      <img src="images/mi_logo.png" alt="Logo RAMPET" class="logo">
+      <h1>Club RAMPET</h1>
+
+      <!-- 🔔 Notificaciones -->
+      <button id="btn-notifs" title="Notificaciones e historial" aria-label="Notificaciones">
+        🔔
+        <span id="notif-counter" aria-live="polite"></span>
+      </button>
+
+      <!-- 📲 Instalar PWA -->
+      <button id="install-entrypoint" class="secondary-btn" style="display:none;">Instalar app</button>
+    </header>
+
+    <div id="loading-screen" class="screen active">
+      <p>Cargando...</p>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-screen" class="screen">
+      <h2>Bienvenido</h2>
+      <p>Ingresa para consultar tus puntos y beneficios.</p>
+
+      <form id="login-form" class="form-group" onsubmit="return false" autocomplete="on">
+        <input type="email" id="login-email" placeholder="Tu Email" autocomplete="email" required>
+        <input type="password" id="login-password" placeholder="Tu Contraseña o DNI" autocomplete="current-password"
+          required>
+        <button id="login-btn" class="primary-btn" type="button">Ingresar</button>
+      </form>
+
+      <p class="toggle-link" style="margin-top: 15px;">
+        <a href="#" id="forgot-password-link">¿Olvidaste tu contraseña?</a>
+      </p>
+      <p class="toggle-link">¿Aún no eres miembro? <a href="#" id="show-register-link">Regístrate aquí</a></p>
+    </div>
+
+    <!-- REGISTRO -->
+    <div id="register-screen" class="screen">
+      <h2>Únete al Club</h2>
+      <p>Completa tus datos para empezar a sumar puntos.</p>
+
+      <form id="register-form" class="form-group" onsubmit="return false" autocomplete="on">
+        <input type="text" id="register-nombre" placeholder="Nombre Completo" autocomplete="name" required>
+        <input type="text" id="register-dni" placeholder="DNI" required>
+        <input type="email" id="register-email" placeholder="Email" required autocomplete="email">
+        <input type="tel" id="register-telefono" placeholder="Teléfono" autocomplete="tel" required>
+
+        <label for="register-fecha-nacimiento">Fecha de Nacimiento</label>
+        <input type="date" id="register-fecha-nacimiento" required>
+
+        <input type="password" id="register-password" placeholder="Crea una Contraseña (mín. 6 caracteres)"
+          autocomplete="new-password" required>
+
+        <!-- Zona opcional en el registro -->
+        <fieldset style="margin-top:14px; padding:12px; border:1px solid #e5e5e5; border-radius:10px;">
+          <legend style="padding:0 6px; font-weight:600;">Tu zona (opcional)</legend>
+          <p class="small-note" style="margin:0 0 10px; color:#666;">Si nos contás tu zona, podremos personalizarte
+            beneficios cerca de tu barrio. Podés completarlo más tarde.</p>
+
+          <div class="grid-2">
+            <input id="reg-calle" placeholder="Calle">
+            <input id="reg-numero" placeholder="Número (puede ser s/n)">
+            <input id="reg-piso" placeholder="Piso">
+            <input id="reg-depto" placeholder="Depto">
+
+            <input id="reg-localidad" list="reg-localidad-list" placeholder="Localidad / Barrio">
+            <datalist id="reg-localidad-list"></datalist>
+
+            <input id="reg-partido" list="reg-partido-list" placeholder="Partido / Barrio">
+            <datalist id="reg-partido-list"></datalist>
+
+            <select id="reg-provincia">
+              <option value="">Provincia</option>
+              <option>Buenos Aires</option>
+              <option>CABA</option>
+              <option>Catamarca</option>
+              <option>Chaco</option>
+              <option>Chubut</option>
+              <option>Córdoba</option>
+              <option>Corrientes</option>
+              <option>Entre Ríos</option>
+              <option>Formosa</option>
+              <option>Jujuy</option>
+              <option>La Pampa</option>
+              <option>La Rioja</option>
+              <option>Mendoza</option>
+              <option>Misiones</option>
+              <option>Neuquén</option>
+              <option>Río Negro</option>
+              <option>Salta</option>
+              <option>San Juan</option>
+              <option>San Luis</option>
+              <option>Santa Cruz</option>
+              <option>Santa Fe</option>
+              <option>Santiago del Estero</option>
+              <option>Tierra del Fuego</option>
+              <option>Tucumán</option>
+            </select>
+
+            <input id="reg-cp" placeholder="Código Postal">
+            <input id="reg-pais" placeholder="País" value="Argentina">
+            <input id="reg-referencia" placeholder="Referencia (opcional)">
+          </div>
+        </fieldset>
+
+        <div class="terms-container" style="margin-top:12px;">
+          <input type="checkbox" id="register-terms" required>
+          <label for="register-terms">He leído y acepto los <a href="#" id="show-terms-link">Términos y
+              Condiciones</a>.</label>
+        </div>
+
+        <button id="register-btn" class="primary-btn" type="button">Crear Cuenta</button>
+      </form>
+
+      <p class="toggle-link">¿Ya tienes cuenta? <a href="#" id="show-login-link">Ingresa aquí</a></p>
+    </div>
+
+    <!-- APP -->
+    <div id="main-app-screen" class="screen">
+      <div class="user-header">
+        <h3>Hola, <span id="cliente-nombre">--</span> (<span id="cliente-numero-socio">--</span>)</h3>
+        <div class="user-actions">
+          <button id="edit-profile-btn" class="secondary-btn">Mi perfil</button>
+          <button id="change-password-btn" class="secondary-btn">Cambiar Clave</button>
+          <button id="logout-btn" class="secondary-btn">Salir</button>
+        </div>
+      </div>
+
+      <div id="terms-banner" class="card terms-banner" style="display:none;">
+        <p>⚠️ Para poder canjear premios, debes aceptar los <a href="#" id="show-terms-link-banner">Términos y
+            Condiciones</a>.</p>
+      </div>
+
+      <!-- Banner chico solo si el usuario no cargó domicilio -->
+      <div id="address-banner" class="card info-banner" style="display:none; margin-bottom:12px;">
+        <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+          <p style="margin:0;">📍 Sumá tu domicilio para recibir promos en tu zona. Opcional.</p>
+          <div style="display:flex; gap:8px;">
+            <button id="address-open-btn" class="primary-btn" type="button">Agregar domicilio</button>
+            <button id="address-skip" class="secondary-btn" type="button">Luego</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card de domicilio (formulario), oculta por defecto -->
+      <section id="address-card" class="card address-card" style="display:none;">
+        <h3>Recibí beneficios cerca tuyo</h3>
+        <p class="sub">Contanos tu zona y activamos promos para tu barrio. Opcional, podés hacerlo más tarde.</p>
+
+        <div class="grid-2">
+          <input id="dom-calle" placeholder="Calle">
+          <input id="dom-numero" placeholder="Número (puede ser s/n)">
+          <input id="dom-piso" placeholder="Piso">
+          <input id="dom-depto" placeholder="Depto">
+
+          <!-- Localidad y Partido con datalist -->
+          <input id="dom-localidad" list="localidad-list" placeholder="Localidad / Barrio">
+          <datalist id="localidad-list"></datalist>
+
+          <input id="dom-partido" list="partido-list" placeholder="Partido / Barrio">
+          <datalist id="partido-list"></datalist>
+
+          <!-- Provincia como select -->
+          <select id="dom-provincia">
+            <option value="">Provincia</option>
+            <option>Buenos Aires</option>
+            <option>CABA</option>
+            <option>Catamarca</option>
+            <option>Chaco</option>
+            <option>Chubut</option>
+            <option>Córdoba</option>
+            <option>Corrientes</option>
+            <option>Entre Ríos</option>
+            <option>Formosa</option>
+            <option>Jujuy</option>
+            <option>La Pampa</option>
+            <option>La Rioja</option>
+            <option>Mendoza</option>
+            <option>Misiones</option>
+            <option>Neuquén</option>
+            <option>Río Negro</option>
+            <option>Salta</option>
+            <option>San Juan</option>
+            <option>San Luis</option>
+            <option>Santa Cruz</option>
+            <option>Santa Fe</option>
+            <option>Santiago del Estero</option>
+            <option>Tierra del Fuego</option>
+            <option>Tucumán</option>
+          </select>
+
+          <input id="dom-cp" placeholder="Código Postal">
+          <input id="dom-pais" placeholder="País" value="Argentina">
+          <input id="dom-referencia" placeholder="Referencia (opcional)">
+        </div>
+
+        <div class="actions" style="margin-top:10px; display:flex; gap:8px; justify-content:flex-end;">
+          <!-- ⚠️ Evitamos duplicar id con el banner -->
+          <button id="address-cancel" class="secondary-btn" type="button">Luego</button>
+          <button id="address-save" class="primary-btn" type="button">Guardar domicilio</button>
+        </div>
+
+        <p class="small-note" style="margin-top:6px;">
+          Usamos estos datos para personalizar beneficios por zona. Podés borrarlos cuando quieras.
+        </p>
+      </section>
+
+      <!-- Puntos -->
+      <div class="card puntos-card">
+        <p>Tus Puntos Disponibles</p>
+        <h2 id="cliente-puntos">--</h2>
+      </div>
+
+      <!-- Puntos por vencer -->
+      <div id="vencimiento-card" class="card vencimiento-card" style="display:none;">
+        <p>⚠️ Puntos por Vencer</p>
+        <h2><span id="cliente-puntos-vencimiento">--</span> Puntos</h2>
+        <p>Vencen el: <strong id="cliente-fecha-vencimiento">--</strong></p>
+        <ul id="vencimiento-list" class="venc-list"></ul>
+      </div>
+
+      <!-- Saldo a favor -->
+      <div class="card" id="saldo-card">
+        <h3>Saldo a favor</h3>
+        <div id="cliente-saldo">$ 5.00</div>
+        <p class="info-message">Se acumula con compras que no alcanzan a sumar un punto.</p>
+      </div>
+      <!-- Slot para avisos chicos de notificaciones -->
+      <div id="notif-off-slot"></div>
+
+      <!-- Slot mini-prompt GEO (ahora libre, notifications.js no lo usa) -->
+      <div id="geo-context-slot"></div>
+
+      <!-- Carrusel de campañas -->
+      <div id="carrusel-campanas-container" class="carrusel-container" style="display:none;">
+        <h3>Promociones para ti</h3>
+        <div id="carrusel-campanas" class="carrusel"></div>
+        <div id="carrusel-indicadores" class="carrusel-indicadores"></div>
+      </div>
+
+      <!-- 🔴 Aviso “notificaciones bloqueadas” — pequeño y DEBAJO del carrusel -->
+      <div id="notif-blocked-warning" class="card warning-banner"
+        style="display:none; border:1px solid #f5c2c7; background:#f8d7da; color:#842029; margin:12px 0; padding:10px 12px; font-size:14px;">
+        <div class="card-body">
+          <p style="margin:0;"><strong>Tenés las notificaciones bloqueadas en el navegador.</strong></p>
+          <p style="margin:6px 0 0 0; font-size:14px;">
+            Para habilitarlas: clic en el <em>candado (🔒)</em> de la barra de direcciones → <em>Notificaciones</em> →
+            <strong>Permitir</strong>, y recargá la página.
+          </p>
+        </div>
+      </div>
+
+      <!-- Notificaciones / prompts -->
+      <div id="notif-prompt-card" class="card" style="display:none;">
+        <h3>🚀 ¡Activá tus beneficios exclusivos!</h3>
+        <p>Enterate al instante de promos y recompensas pensadas para vos. Activá las notificaciones y no te pierdas
+          nada.</p>
+        <ul style="text-align:left; padding-left:20px; margin:10px 0 15px;">
+          <li>💰 <strong>Puntos al instante</strong></li>
+          <li>🔥 <strong>Ofertas flash</strong></li>
+          <li>🎁 <strong>Recompensas exclusivas</strong></li>
+        </ul>
+        <div class="prompt-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="btn-activar-notif-prompt" class="primary-btn">Sí, quiero recibir beneficios</button>
+          <button id="btn-rechazar-notif-prompt" class="secondary-btn">Luego</button>
+          <button id="btn-bloquear-notif-prompt" class="secondary-btn" style="opacity:.9;">No quiero</button>
+        </div>
+      </div>
+
+      <div id="install-prompt-card" class="card" style="display:none;">
+        <h3>📲 ¡Lleva el Club Contigo!</h3>
+        <p>Instala la aplicación para acceso más rápido a tus puntos y beneficios.</p>
+        <div class="prompt-actions">
+          <button id="btn-install-pwa" class="primary-btn">Instalar Ahora</button>
+          <button id="btn-dismiss-install" class="secondary-btn">No, gracias</button>
+        </div>
+      </div>
+
+      <!-- ✅ Card regular con switch (lo maneja notifications.js) -->
+      <div id="notif-card" class="card" style="display:none;">
+        <h3>Notificaciones</h3>
+        <div class="notif-setting">
+          <p>¡No te pierdas ofertas, descuentos y novedades! Activá los avisos.</p>
+          <label class="switch">
+            <input type="checkbox" id="notif-switch">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Banner de ubicación (GEO) -->
+      <div id="geo-banner" class="card" style="display:none;">
+        <h3>Beneficios cerca tuyo</h3>
+        <p id="geo-banner-text" style="margin:8px 0 12px;"></p>
+        <div class="prompt-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button id="geo-enable-btn" class="primary-btn" style="display:none;">Activar ahora</button>
+          <button id="geo-later-btn" class="secondary-btn" style="display:none;">Luego</button>
+          <button id="geo-disable-btn" class="secondary-btn" style="display:none;">Desactivar</button>
+          <button id="geo-help-btn" class="secondary-btn" style="display:none;">Cómo habilitarlo</button>
+        </div>
+      </div>
+
+      <div id="historial-container" class="card">
+        <h3>Historial Reciente</h3>
+        <ul id="lista-historial"></ul>
+      </div>
+
+      <div id="premios-container" class="card">
+        <h3>Catálogo de Premios</h3>
+        <p>Estos son los premios que puedes canjear en la tienda:</p>
+        <ul id="lista-premios-cliente"></ul>
+      </div>
+
+      <footer class="app-footer">
+        <p>Al usar esta app, aceptas nuestros <a href="#" id="footer-terms-link">Términos y Condiciones</a>.</p>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Deep-link del INBOX -->
+  <script>
+    (function () {
+      const u = new URL(location.href);
+      const wantsInbox =
+        u.pathname.replace(/\/+$/, '') === '/notificaciones' ||
+        u.searchParams.has('inbox');
+      if (!wantsInbox) return;
+
+      function tryOpen() {
+        const btn = document.getElementById('btn-notifs');
+        if (btn && getComputedStyle(btn).display !== 'none') {
+          try { btn.click(); } catch { }
+          return;
+        }
+        setTimeout(tryOpen, 250);
+      }
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        tryOpen();
+      } else {
+        document.addEventListener('DOMContentLoaded', tryOpen);
+      }
+    })();
+  </script>
+
+  <script>
+    // Mini-prompt contextual (actualmente no usado por notifications.js)
+    function tryShowGeoPrompt() {
+      try { window.maybeShowGeoContextPrompt?.('geo-context-slot'); } catch { }
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(tryShowGeoPrompt, 0);
+    } else {
+      document.addEventListener('DOMContentLoaded', () => setTimeout(tryShowGeoPrompt, 0));
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') tryShowGeoPrompt();
+    });
+    document.addEventListener('rampet:geo:changed', tryShowGeoPrompt);
+  </script>
+</body>
+
+</html>
