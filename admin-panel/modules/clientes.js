@@ -617,8 +617,8 @@ export async function registrarCliente() {
   const addressLine = dom?.addressLine || '';
   console.log('[domicilio] payload a enviar →', { domicilio, addressLine });
 
-  const NOTIF_BASE = (window.__RAMPET__ && window.__RAMPET__.NOTIF_BASE) || '';
-  const API_KEY = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
+  const NOTIF_BASE = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiUrl) || (window.__RAMPET__ && window.__RAMPET__.NOTIF_BASE) || '';
+  const API_KEY = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiKey) || (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
   const useCreateUserAPI = appData?.config?.featureFlags?.useCreateUserAPI !== false; // default: true
 
   const btn = document.getElementById('registrar-cliente-btn');

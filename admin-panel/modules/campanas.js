@@ -11,10 +11,8 @@ let isCampanasInitialized = false;
 
 // === Helpers para config del server de notificaciones ===
 function getNotifConfig() {
-  // Definí estas variables en index.html antes de cargar app.js:
-  // <script>window.__RAMPET__={ NOTIF_BASE:'https://rampet-notification-server-three.vercel.app', API_KEY:'' };</script>
-  const base = window.ADMIN_CONFIG?.apiUrl || 'https://rampet-notification-server-three.vercel.app';
-  const key = window.__RAMPET__?.API_KEY || ''; // si está vacío, igual intentamos por CORS allowlist
+  const base = window.ADMIN_CONFIG?.apiUrl || '';
+  const key = window.ADMIN_CONFIG?.apiKey || '';
   return { base, key };
 }
 const isEditMode = () => !!campanaEnEdicionId;
