@@ -957,8 +957,8 @@ export async function eliminarClienteHandler(clienteId) {
   if (!confirmacion) return;
 
   try {
-    const NOTIF_BASE = (window.__RAMPET__ && window.__RAMPET__.NOTIF_BASE) || '';
-    const API_KEY = (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
+    const NOTIF_BASE = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiUrl) || '';
+    const API_KEY = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiKey) || '';
 
     const response = await fetch(`${NOTIF_BASE}/api/delete-user`, {
       method: 'POST',
