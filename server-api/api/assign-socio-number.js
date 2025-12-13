@@ -1,152 +1,178 @@
-// /api/assign-socio-number.js  (ESM + CORS + asigna N° socio + email bienvenida)
-import admin from 'firebase-admin';
+```javascript
+// api/assign-socio-number.js
+// Asigna número de socio correlativo y envía email (opcional).
+// Refactorizado para consistencia con create-user.js (CORS robusto, Auth check, Safe Parsing).
 
-// Inicializa Firebase Admin una sola vez
-if (!admin.apps.length) {
-  const creds = process.env.GOOGLE_CREDENTIALS_JSON;
-  if (creds) {
-    const serviceAccount = JSON.parse(creds);
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-  } else {
-    // fallback si usás ADC (no recomendado para Vercel)
-    admin.initializeApp();
-  }
+import admin from "firebase-admin";
+
+// ---------- Firebase Admin ----------
+function initFirebaseAdmin() {
+  if (admin.apps.length) return;
+
+  const raw = process.env.GOOGLE_CREDENTIALS_JSON;
+  if (!raw) throw new Error("GOOGLE_CREDENTIALS_JSON missing");
+
+  let sa;
+  try { sa = JSON.parse(raw); }
+  catch { throw new Error("Invalid GOOGLE_CREDENTIALS_JSON (not valid JSON)"); }
+
+  admin.initializeApp({
+    credential: admin.credential.cert(sa),
+  });
 }
 
-const db = admin.firestore();
-
-// ---- CORS (eco del origin si está permitido) ----
-const ALLOWED = (process.env.CORS_ALLOWED_ORIGINS || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-function cors(req, res) {
-  const origin = req.headers.origin || '';
-  if (ALLOWED.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  res.setHeader('Vary', 'Origin');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,x-api-key');
-  if (req.method === 'OPTIONS') { res.status(204).end(); return true; }
-  return false;
+function getDb() {
+  initFirebaseAdmin();
+  return admin.firestore();
 }
 
-export default async function handler(req, res) {
-
-  // ---- CORS: permitir orígenes del Panel y headers necesarios ----
-  const allowedOrigins = [
-    'http://127.0.0.1:5500',
-    'http://localhost:5500',
-    'https://TU-DOMINIO-DEL-PANEL',     // <-- si corresponde
-    'https://TU-OTRO-DOMINIO-SI-CORRESPONDE',
-    // PWA
-    process.env.PWA_URL,
-  ];
+// ---------- CORS ----------
+function getAllowedOrigin(req) {
+  const allowed = (process.env.CORS_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  // Si origin coincide o si permitimos todo con *, devolvemos origin (para credenciales)
+  if (origin && allowed.includes(origin)) return origin;
+  // Fallback a la primera o vacío
+  return allowed[0] || "";
+}
+
+function setCors(res, origin) {
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Vary", "Origin");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS, GET");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key, Authorization");
+}
+
+// ---------- Body seguro ----------
+async function readJsonBody(req) {
+  // En Vercel a veces req.body ya viene parseado si usas ciertos middleware,
+  // pero para standard raw function:
+  if (req.body && typeof req.body === 'object') return req.body;
+  if (req.body && typeof req.body === 'string') {
+      try { return JSON.parse(req.body); } catch { throw new Error("BAD_JSON"); }
   }
-  res.setHeader('Vary', 'Origin'); // para caches
-  res.setHeader('Access-Control-Allow-Credentials', 'true'); // si te hace falta cookies (opcional)
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
-
-  // Preflight (OPTIONS) debe responder sin más
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Extra: si configuraste CORS_ALLOWED_ORIGINS, respetalo también
-  if (cors(req, res)) return;
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido.' });
-  }
-
-  // Body-safe: si llega string (algunas configs de Vercel), parseamos
-  let body = req.body;
-  if (typeof body === 'string') {
-    try { body = JSON.parse(body); } catch { body = {}; }
-  }
-
-  let { docId, sendWelcome } = body || {};
-  if (!docId) {
-    return res.status(400).json({ error: 'Falta el ID del documento del cliente.' });
-  }
-
-  // 🔹 REGLA NUEVA:
-  // - Si el Panel envía explícitamente sendWelcome true/false → se respeta.
-  // - Si NO lo envía, entonces:
-  //     * Desde la PWA (rampet.vercel.app) => enviamos email (true).
-  //     * Desde otros orígenes => no cambiar el comportamiento previo (false).
-  const isPwaOrigin = origin === process.env.PWA_URL;
-  const shouldSendWelcome = (typeof sendWelcome === 'boolean') ? sendWelcome : isPwaOrigin;
-
+  // Fallback stream reading (raro en Vercel Functions modernas pero util)
   try {
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    const raw = Buffer.concat(chunks).toString("utf8");
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    const e = new Error("BAD_JSON");
+    e.code = "BAD_JSON";
+    throw e;
+  }
+}
+
+// ---------- Config Email ----------
+// URL para llamarse a sí mismo (email)
+function getSelfBaseUrl(req) {
+    if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL;
+    const host = req.headers.host;
+    const proto = req.headers['x-forwarded-proto'] || 'https';
+    return `${ proto }://${host}`;
+}
+
+// ---------- Handler ----------
+export default async function handler(req, res) {
+  const allowOrigin = getAllowedOrigin(req);
+  setCors(res, allowOrigin);
+
+  if (req.method === "OPTIONS") return res.status(204).end();
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, error: "Method Not Allowed" });
+  }
+
+  // API key Check (Seguridad)
+  const clientKey = req.headers["x-api-key"];
+  if (process.env.API_SECRET_KEY && (!clientKey || clientKey !== process.env.API_SECRET_KEY)) {
+    console.warn("Unauthorized attempt to assign-socio-number");
+    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  }
+
+  // Body Parsing
+  let payload = {};
+  try {
+    payload = await readJsonBody(req);
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: "Invalid JSON body" });
+  }
+
+  const { docId, sendWelcome } = payload;
+  if (!docId) {
+    return res.status(400).json({ ok: false, error: "Falta docId" });
+  }
+
+  // Lógica de negocio
+  try {
+    const db = getDb();
     const contadorRef = db.collection('configuracion').doc('contadores');
     const clienteRef = db.collection('clientes').doc(docId);
 
-    // Datos que vamos a usar para el email
     let datosClienteParaEmail = null;
+    let assignedNumber = null;
+    let alreadyHadNumber = false;
 
-    // --- Transacción: asignar número de socio correlativo ---
     await db.runTransaction(async (tx) => {
       const [contadorDoc, clienteDoc] = await Promise.all([
         tx.get(contadorRef),
         tx.get(clienteRef),
       ]);
 
-      if (!clienteDoc.exists) {
-        throw new Error('El documento del cliente no existe.');
-      }
+      if (!clienteDoc.exists) throw new Error("Cliente no encontrado");
 
-      const clienteData = clienteDoc.data();
-
-      // Si ya tenía número, salimos (no reenviamos email)
-      if (clienteData.numeroSocio) {
-        console.log(`Cliente ${docId} ya tenía N° de Socio. Nada que hacer.`);
+      const data = clienteDoc.data();
+      if (data.numeroSocio) {
+        alreadyHadNumber = true;
+        assignedNumber = data.numeroSocio;
         return;
       }
 
-      // Datos base para el email (completamos N° abajo)
-      datosClienteParaEmail = {
-        id_cliente: docId,
-        nombre: clienteData.nombre,
-        email: clienteData.email,
-        puntos_ganados: clienteData.puntos || 0,
-      };
-
-      let nuevoNumeroSocio = 1;
+      // Calcular nuevo número
+      let nextNum = 1;
       if (contadorDoc.exists && contadorDoc.data().ultimoNumeroSocio) {
-        nuevoNumeroSocio = contadorDoc.data().ultimoNumeroSocio + 1;
+        nextNum = contadorDoc.data().ultimoNumeroSocio + 1;
       }
 
-      // Actualizar contador y cliente
-      tx.set(contadorRef, { ultimoNumeroSocio: nuevoNumeroSocio }, { merge: true });
-      tx.update(clienteRef, { numeroSocio: nuevoNumeroSocio });
+      // Escribir
+      tx.set(contadorRef, { ultimoNumeroSocio: nextNum }, { merge: true });
+      tx.update(clienteRef, { numeroSocio: nextNum });
 
-      // Guardar N° para el email
-      datosClienteParaEmail.numero_socio = nuevoNumeroSocio;
-
-      console.log(`Asignado N° de Socio ${nuevoNumeroSocio} al cliente ${docId}`);
+      assignedNumber = nextNum;
+      datosClienteParaEmail = {
+        id_cliente: docId,
+        nombre: data.nombre,
+        email: data.email,
+        puntos_ganados: data.puntos || 0,
+        numero_socio: nextNum
+      };
     });
 
-    // Si no hubo cambios (ya tenía N°), devolvemos OK
-    if (!datosClienteParaEmail) {
-      return res.status(200).json({ message: 'El cliente ya tenía número de socio. No se envió email.' });
+    if (alreadyHadNumber) {
+      return res.status(200).json({
+        ok: true,
+        numeroSocio: assignedNumber,
+        message: "El cliente ya tenía número de socio.",
+        emailEnviado: false
+      });
     }
 
-    // --- Enviar email de bienvenida según regla shouldSendWelcome ---
-    if (shouldSendWelcome) {
+    // Enviar email si corresponde
+    let mailResult = null;
+    if (sendWelcome && datosClienteParaEmail) {
       try {
-        const baseUrl = process.env.PUBLIC_BASE_URL || `https://${req.headers.host}`;
+        const baseUrl = getSelfBaseUrl(req);
+        // Llamada interna a la API de email
         const r = await fetch(`${baseUrl}/api/send-email`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.API_SECRET_KEY}`
+            'x-api-key': process.env.API_SECRET_KEY || ''
           },
           body: JSON.stringify({
             to: datosClienteParaEmail.email,
@@ -155,41 +181,27 @@ export default async function handler(req, res) {
               nombre: datosClienteParaEmail.nombre,
               numero_socio: datosClienteParaEmail.numero_socio,
               puntos_ganados: datosClienteParaEmail.puntos_ganados,
-              id_cliente: datosClienteParaEmail.id_cliente,
+              id_cliente: datosClienteParaEmail.id_cliente
             }
           })
         });
-
-        const mailResp = await r.json().catch(() => ({}));
-        return res.status(200).json({
-          ok: true,
-          message: 'Número de socio asignado y email de bienvenida enviado (o encolado).',
-          numeroSocio: datosClienteParaEmail.numero_socio,
-          emailEnviado: true,
-          mail: mailResp
-        });
-      } catch (err) {
-        console.error('Error enviando email de bienvenida:', err);
-        return res.status(200).json({
-          ok: true,
-          message: 'Número de socio asignado. Falló el envío de email de bienvenida.',
-          numeroSocio: datosClienteParaEmail.numero_socio,
-          emailEnviado: false,
-          mail: { error: 'send-email failed' }
-        });
+        mailResult = await r.json().catch(() => ({}));
+      } catch (errEmail) {
+        console.error("Error enviando email welcome:", errEmail);
+        mailResult = { error: "Failed to send email" };
       }
-    } else {
-      console.log('[assign-socio-number] sendWelcome=false → no se envía email.');
-      return res.status(200).json({
-        ok: true,
-        message: 'Número de socio asignado (sin email de bienvenida por configuración).',
-        numeroSocio: datosClienteParaEmail.numero_socio,
-        emailEnviado: false
-      });
     }
 
+    return res.status(200).json({
+      ok: true,
+      numeroSocio: assignedNumber,
+      emailEnviado: !!(sendWelcome && datosClienteParaEmail),
+      mail: mailResult
+    });
+
   } catch (error) {
-    console.error('Error asignando número de socio:', error);
-    return res.status(500).json({ error: 'Error interno del servidor.', details: error.message });
+    console.error("assign-socio-number error:", error);
+    return res.status(500).json({ ok: false, error: error.message });
   }
 }
+```
