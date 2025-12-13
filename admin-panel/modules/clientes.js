@@ -619,6 +619,7 @@ export async function registrarCliente() {
 
   const NOTIF_BASE = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiUrl) || (window.__RAMPET__ && window.__RAMPET__.NOTIF_BASE) || '';
   const API_KEY = (window.ADMIN_CONFIG && window.ADMIN_CONFIG.apiKey) || (window.__RAMPET__ && window.__RAMPET__.API_KEY) || '';
+  console.log('[DEBUG-CONFIG] window.ADMIN_CONFIG:', window.ADMIN_CONFIG);
   const useCreateUserAPI = appData?.config?.featureFlags?.useCreateUserAPI !== false; // default: true
 
   const btn = document.getElementById('registrar-cliente-btn');

@@ -75,7 +75,7 @@ const adminConfigContent = `// Configuración Global Admin - Generada automátic
 window.ADMIN_CONFIG = {
     platformName: "Admin - ${clientConfig.appName}",
     logoUrl: "${clientConfig.logoUrl}",
-    apiUrl: "${clientConfig.apiUrl || ''}",
+    apiUrl: "${clientConfig.apiUrl || 'https://fidelidad-api.vercel.app'}",
     
     theme: ${JSON.stringify(clientConfig.theme, null, 4)},
 
