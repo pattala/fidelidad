@@ -28,7 +28,8 @@ window.APP_CONFIG = {
     appName: "${clientConfig.appName}",
     companyName: "${clientConfig.companyName}",
     logoUrl: "${clientConfig.logoUrl}",
-    apiUrl: "${clientConfig.apiUrl || ''}",
+    apiUrl: "${clientConfig.apiUrl || 'https://fidelidad-api.vercel.app'}",
+    apiKey: "${process.env.API_SECRET_KEY || ''}",
     
     theme: ${JSON.stringify(clientConfig.theme, null, 4)},
     
