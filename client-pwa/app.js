@@ -795,8 +795,47 @@ async function main() {
       if (bell) bell.style.display = 'inline-block';
       setupMainAppScreenListeners();
 
-      // 🔹 Registrar SW + token si ya hay permiso (solo una vez, desde notifications.js)
-      try { await initNotificationsOnce(); } catch (e) { console.warn('[PWA] initNotificationsOnce error:', e); }
+      // 🚀 ONBOARDING FLOW
+      const justSignedUp = localStorage.getItem('justSignedUp') === '1';
+      const notifState = localStorage.getItem('notifState');
+      const perm = ('Notification' in window) ? Notification.permission : 'denied';
+
+      // Si se acaba de registrar Y no tiene permisos definidos (ni granted ni blocked)
+      if (justSignedUp && perm === 'default' && !notifState) {
+        // Wiring exclusivo del onboarding
+        const btnEnable = document.getElementById('btn-onboarding-enable');
+        const btnSkip = document.getElementById('btn-onboarding-skip');
+
+        const finishOnboarding = () => {
+          localStorage.removeItem('justSignedUp');
+          UI.showScreen('main-app-screen');
+          // Ahora sí inicializamos cosas del home
+          try { initNotificationsOnce(); } catch (e) { }
+        };
+
+        if (btnEnable) btnEnable.onclick = async () => {
+          try {
+            // Import dinámico para asegurar módulo cargado
+            const Mod = await import('./modules/notifications.js');
+            await Mod.handlePermissionRequest();
+          } catch (e) { console.warn(e); }
+          finishOnboarding();
+        };
+
+        if (btnSkip) btnSkip.onclick = () => {
+          try { localStorage.setItem('notifState', 'deferred'); } catch (e) { }
+          finishOnboarding();
+        };
+
+        UI.showScreen('onboarding-screen');
+
+      } else {
+        // Flujo normal directo al home
+        if (justSignedUp) localStorage.removeItem('justSignedUp'); // limpieza por si acaso
+        UI.showScreen('main-app-screen');
+        try { await initNotificationsOnce(); } catch (e) { console.warn('[PWA] initNotificationsOnce error:', e); }
+      }
+
 
       // ⚡ escuchar mensajes del SW para badge (sin duplicar onMessage)
       wireSwMessageChannel();

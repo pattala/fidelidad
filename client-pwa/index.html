@@ -230,6 +230,35 @@
       <p class="toggle-link">¿Ya tienes cuenta? <a href="#" id="show-login-link">Ingresa aquí</a></p>
     </div>
 
+    <!-- ONBOARDING (Post-Registro) -->
+    <div id="onboarding-screen" class="screen" style="text-align:center; padding-top:40px;">
+      <div style="font-size:48px; margin-bottom:20px;">🚀</div>
+      <h2>¡Activá tus beneficios!</h2>
+      <p style="color:#666; max-width:280px; margin:0 auto 30px;">
+        Para avisarte cuando sumes puntos o tengas premios disponibles, necesitamos enviarte notificaciones.
+      </p>
+
+      <div class="card" style="border:none; background:transparent; box-shadow:none;">
+        <ul style="text-align:left; display:inline-block; color:#555; line-height:1.8;">
+          <li>💰 <strong>Puntos al instante</strong></li>
+          <li>🔥 <strong>Ofertas flash</strong></li>
+          <li>🎁 <strong>Premios exclusivos</strong></li>
+        </ul>
+      </div>
+
+      <div class="actions" style="margin-top:40px;">
+        <button id="btn-onboarding-enable" class="primary-btn"
+          style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
+          Sí, activar notificaciones
+        </button>
+        <br>
+        <button id="btn-onboarding-skip" class="secondary-btn"
+          style="margin-top:16px; border:none; background:transparent; color:#999;">
+          Ahora no, gracias
+        </button>
+      </div>
+    </div>
+
     <!-- APP -->
     <div id="main-app-screen" class="screen">
       <div class="user-header">
@@ -365,22 +394,7 @@
         </div>
       </div>
 
-      <!-- Notificaciones / prompts -->
-      <div id="notif-prompt-card" class="card" style="display:none;">
-        <h3>🚀 ¡Activá tus beneficios exclusivos!</h3>
-        <p>Enterate al instante de promos y recompensas pensadas para vos. Activá las notificaciones y no te pierdas
-          nada.</p>
-        <ul style="text-align:left; padding-left:20px; margin:10px 0 15px;">
-          <li>💰 <strong>Puntos al instante</strong></li>
-          <li>🔥 <strong>Ofertas flash</strong></li>
-          <li>🎁 <strong>Recompensas exclusivas</strong></li>
-        </ul>
-        <div class="prompt-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button id="btn-activar-notif-prompt" class="primary-btn">Sí, quiero recibir beneficios</button>
-          <button id="btn-rechazar-notif-prompt" class="secondary-btn">Luego</button>
-          <button id="btn-bloquear-notif-prompt" class="secondary-btn" style="opacity:.9;">No quiero</button>
-        </div>
-      </div>
+
 
       <div id="install-prompt-card" class="card" style="display:none;">
         <h3>📲 ¡Lleva el Club Contigo!</h3>

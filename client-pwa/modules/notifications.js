@@ -601,8 +601,8 @@ function refreshNotifUIFromPermission() {
     return;
   }
 
-  // 6) default → primera vez (banner grande marketing)
-  if (!pending) show(cardMarketing, true);
+  // 6) default → ya no mostramos banner grande en Home (se maneja en Onboarding o switch off)
+  // if (!pending) show(cardMarketing, true); <-- ELIMINADO
   if (switchEl) switchEl.checked = false;
   showNotifOffBanner(false);
 }
