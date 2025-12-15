@@ -1,7 +1,8 @@
 {
   "scripts": {
     "build": "npm run build:demo",
-    "build:rampet": "node scripts/generate-client.js --client=rampet",
+    "build:rampet": "npm run build:demo",
+    "build:rampet:original": "node scripts/generate-client.js --client=rampet",
     "build:demo": "node scripts/generate-client.js --client=demo"
   },
   "dependencies": {
