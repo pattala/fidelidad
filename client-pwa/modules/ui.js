@@ -57,7 +57,7 @@ function readConsentFallback() {
 // ─────────────────────────────────────────────────────────────
 // Pantalla principal
 // ─────────────────────────────────────────────────────────────
-export function renderMainScreen(clienteData, premiosData, campanasData = []) {
+export function renderMainScreen(clienteData, premiosData, campanasData = [], opts = {}) {
   if (!clienteData) return;
 
   safeSetText('cliente-nombre', (clienteData.nombre || '--').split(' ')[0]);
