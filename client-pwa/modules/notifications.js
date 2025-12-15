@@ -604,6 +604,8 @@ function refreshNotifUIFromPermission() {
   // 6) default → ya no mostramos banner grande en Home (se maneja en Onboarding o switch off)
   // if (!pending) show(cardMarketing, true); <-- ELIMINADO
   if (switchEl) switchEl.checked = false;
+  // FIX: Mostrar cardSwitch si no hay nada pendiente, para que el usuario pueda activar
+  if (!pending) show(cardSwitch, true);
   showNotifOffBanner(false);
 }
 
