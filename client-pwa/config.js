@@ -1,17 +1,17 @@
 // Configuración Global - Generada automáticamente
-// Cliente: Club RAMPET
-// Fecha: 2025-12-15T01:34:40.795Z
+// Cliente: Club Demo
+// Fecha: 2025-12-15T02:03:37.098Z
 
 window.APP_CONFIG = {
-    appName: "Club RAMPET",
-    companyName: "RAMPET",
+    appName: "Club Demo",
+    companyName: "Empresa Demo S.A.",
     logoUrl: "images/mi_logo.png",
-    apiUrl: "https://fidelidad-api.vercel.app",
+    apiUrl: "",
     
     theme: {
-    "primary": "#007bff",
-    "secondary": "#333333",
-    "background": "#f0f2f5"
+    "primary": "#e11d48",
+    "secondary": "#1f2937",
+    "background": "#ffffff"
 },
     
     features: {

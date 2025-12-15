@@ -1,16 +1,16 @@
 // Configuración Global Admin - Generada automáticamente
-// Cliente: Club RAMPET
+// Cliente: Club Demo
 
 window.ADMIN_CONFIG = {
-    platformName: "Admin - Club RAMPET",
+    platformName: "Admin - Club Demo",
     logoUrl: "images/mi_logo.png",
     apiUrl: "https://fidelidad-api.vercel.app",
     apiKey: "",
     
     theme: {
-    "primary": "#007bff",
-    "secondary": "#333333",
-    "background": "#f0f2f5"
+    "primary": "#e11d48",
+    "secondary": "#1f2937",
+    "background": "#ffffff"
 },
 
     featureFlags: {

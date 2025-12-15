@@ -28,6 +28,9 @@
         "showPoweredBy": true,
         "geoCooldownDays": 30
     },
+    "featureFlags": {
+        "useCreateUserAPI": true
+    },
     "firebase": {
         "apiKey": "AIzaSyAvBw_Cc-t8lfip_FtQ1w_w3DrPDYpxINs",
         "authDomain": "sistema-fidelizacion.firebaseapp.com",
