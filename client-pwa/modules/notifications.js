@@ -765,7 +765,18 @@ export async function handlePermissionSwitch(e) {
       try { showNotifOffBanner(false); obtenerYGuardarToken().catch(() => { }); } catch (err) { showNotifOffBanner(true); }
     } else if (before === 'default') {
       console.log('[Notif] Requesting permission...');
-      const status = await Notification.requestPermission();
+
+      // Intentamos pedir permiso con un timeout de seguridad en UI (no cancela la nativa, pero avisa)
+      const promptPromise = Notification.requestPermission();
+
+      // Si a los 2 seg no respondió, asumimos que el navegador lo está reteniendo (o popup blocker)
+      const hangTimer = setTimeout(() => {
+        toast('Si no ves el permiso, revisá el candado 🔒 en la barra de dirección.', 'info');
+      }, 2500);
+
+      const status = await promptPromise;
+      clearTimeout(hangTimer);
+
       console.log('[Notif] Request result:', status);
       if (status === 'granted') {
         try { showNotifOffBanner(false); obtenerYGuardarToken().catch(() => { }); } catch (err) { showNotifOffBanner(true); }
