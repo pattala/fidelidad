@@ -696,15 +696,10 @@ async function setupAddressSection() {
   } catch { }
 
   // Mostrar banner/card según estado actual (sin duplicar lógica de notifications.js)
-  const justSignedUp = localStorage.getItem('justSignedUp') === '1';
-  const addrProvidedAtSignup = localStorage.getItem('addressProvidedAtSignup') === '1';
-  if (justSignedUp && !addrProvidedAtSignup) {
-    if (card) card.style.display = 'block';
-    if (banner) banner.style.display = 'none';
-    try { localStorage.removeItem('justSignedUp'); } catch { }
-    return;
-  }
+  // Mostrar banner/card según estado actual (sin duplicar lógica de notifications.js)
+  // 🔽 REMOVED: Auto-open form on signup. Falling through to standard banner logic.
   try { localStorage.removeItem('addressProvidedAtSignup'); } catch { }
+
 
   // Chequeo rápido si ya hay domicilio Y si en servidor se marcó "no mostrar más el banner"
   let hasAddress = false;
