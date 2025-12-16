@@ -54,7 +54,8 @@ window.openTermsModal = function (showAcceptButton = false) {
     btnAccept.style.display = showAcceptButton ? 'inline-block' : 'none';
   }
 
-  // 4. Mostrar modal
+  // 4. Mostrar modal (Force Z-Index always)
+  m.style.zIndex = "2147483647";
   m.style.display = 'flex';
 };
 
