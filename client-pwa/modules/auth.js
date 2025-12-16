@@ -10,33 +10,45 @@ import { cleanupListener } from './data.js';
 let __signupLock = false;
 
 async function hardResetFirebaseCaches() {
+  console.log('[Auth] Limpiando sesión previa...');
   // Cierra sesión si hubiera alguien logueado
   try { if (auth.currentUser) await auth.signOut(); } catch { }
 
-  // Borra IndexedDBs comunes de Firebase (si no existen, ignora el error)
-  const toDelete = [
-    'firebaseLocalStorageDb',
-    'firebase-installations-database',
-    'firebase-messaging-database',
-    'firebase-messaging-database-worker',
-    // Firestore (nombres típicos; si alguno no existe, no pasa nada)
-    'firestore/[DEFAULT]/sistema-fidelizacion/main',
-    'firestore/[DEFAULT]/main'
-  ];
-  await Promise.allSettled(
-    toDelete.map(name => new Promise(res => {
-      const req = indexedDB.deleteDatabase(name);
-      req.onsuccess = req.onerror = req.onblocked = () => res();
-    }))
-  );
+  // 1. Promesa de borrado de IndexedDB
+  const deletePromise = (async () => {
+    const toDelete = [
+      'firebaseLocalStorageDb',
+      'firebase-installations-database',
+      'firebase-messaging-database',
+      'firebase-messaging-database-worker',
+      'firestore/[DEFAULT]/sistema-fidelizacion/main',
+      'firestore/[DEFAULT]/main'
+    ];
+    await Promise.allSettled(
+      toDelete.map(name => new Promise(res => {
+        try {
+          const req = indexedDB.deleteDatabase(name);
+          req.onsuccess = req.onerror = req.onblocked = () => res();
+        } catch (e) {
+          res(); // Si falla sincrónicamente (SecurityError), seguir
+        }
+      }))
+    );
+  })();
 
-  // Limpia flags locales de la PWA si los usás
+  // 2. Timeout de seguridad (1.5s) por si el navegador bloquea IDB silently
+  const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1500));
+
+  // Race: lo que termine primero
+  await Promise.race([deletePromise, timeoutPromise]);
+  console.log('[Auth] Limpieza terminada (o timeout).');
+
+  // Limpia flags locales de la PWA
   try { localStorage.removeItem('justSignedUp'); } catch { }
   try { localStorage.removeItem('addressProvidedAtSignup'); } catch { }
 }
 
 async function ensureCleanAuthSession() {
-  // Antes de cada alta, forzamos estado “limpio”
   await hardResetFirebaseCaches();
 }
 
@@ -140,9 +152,13 @@ function collectSignupAddress() {
 // REGISTRO DE CUENTA (Opción A: asignación del N° via API del server)
 // ──────────────────────────────────────────────────────────────
 export async function registerNewAccount() {
+  console.log('[Auth] registerNewAccount iniciado...');
 
   // ⬇️ Anti-doble envío
-  if (__signupLock) return UI.showToast("Estamos creando tu cuenta…", "info");
+  if (__signupLock) {
+    console.warn('[Auth] Registro bloqueado por signupLock activo');
+    return UI.showToast("Estamos creando tu cuenta…", "info");
+  }
   __signupLock = true;
   const nombre = gv('register-nombre');
   const dni = gv('register-dni');
