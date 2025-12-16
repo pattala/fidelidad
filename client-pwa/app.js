@@ -927,66 +927,18 @@ async function main() {
 
 }
 
-// ──────────────────────────────────────────────────────────────
-// ──────────────────────────────────────────────────────────────
-// T&C: interceptar links y abrir modal (Self-Contained / Zero Dep)
-// ──────────────────────────────────────────────────────────────
-window.openTermsModal = function () {
-  console.log('[T&C] Request to open modal (Self-Contained)...');
-
-  let m = document.getElementById('terms-modal');
-
-  if (!m) {
-    m = document.createElement('div');
-    m.id = 'terms-modal';
-    m.style.cssText = 'display:none; position:fixed; inset:0; z-index:20000; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;';
-    m.innerHTML = `
-      <div style="max-width:720px; width:90%; background:#fff; border-radius:12px; padding:16px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
-          <h3 style="margin:0; font-size:18px;">Términos y Condiciones</h3>
-          <button id="close-terms-modal-dynamic" class="secondary-btn" style="padding:4px 8px; font-size:18px; line-height:1; min-width:32px;" aria-label="Cerrar">✕</button>
-        </div>
-        <div id="terms-text" style="flex:1; overflow-y:auto; padding-right:4px;"></div>
-        <div style="margin-top:12px; text-align:right; flex-shrink:0;">
-           <button id="accept-terms-btn-modal" class="primary-btn" style="display:none; width:100%;">Aceptar y Continuar</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(m);
-
-    m.addEventListener('click', (ev) => { if (ev.target === m) m.style.display = 'none'; });
-    const btnClose = m.querySelector('#close-terms-modal-dynamic');
-    if (btnClose) btnClose.onclick = () => m.style.display = 'none';
-  }
-
-  // Inject content directly (no helper function needed)
-  const contentEl = m.querySelector('#terms-text');
-  if (contentEl) {
-    contentEl.innerHTML = `
-      <p><strong>1. Generalidades:</strong> El programa de fidelización "Club RAMPET" es un beneficio exclusivo para nuestros clientes. La participación implica la aceptación total de los presentes términos.</p>
-      <p><strong>2. Consentimiento:</strong> Al registrarte, autorizás el envío de novedades y, si activás la geolocalización, el uso de tu ubicación para ofertas cercanas.</p>   
-      <p><strong>3. Puntos:</strong> Los puntos no tienen valor monetario ni son transferibles.</p>
-      <p><strong>4. Canje:</strong> Se realiza exclusivamente en el local presentando DNI.</p>
-      <p><strong>5. Validez:</strong> Los puntos tienen fecha de caducidad según normativa vigente.</p>
-      <p><strong>6. Modificaciones:</strong> RAMPET puede modificar estos términos sin previo aviso.</p>
-    `;
-  }
-
-  m.style.display = 'flex';
-  const btn = document.getElementById('accept-terms-btn-modal');
-  if (btn) btn.style.display = 'none';
-};
-
-// Alias para compatibilidad con cualquier llamada residual
-window.openTermsModalCatchAll = window.openTermsModal;
-
-// Listener global de respaldo
+// (T&C Logic moved to terminos.js to ensure reliability)
 document.addEventListener('click', (e) => {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   const trigger = e.target.closest('#show-terms-link, #show-terms-link-banner, #footer-terms-link');
   if (!trigger) return;
-  e.preventDefault();
-  window.openTermsModal();
+
+  // If no onclick handler handled it (like in the registration form), we handle it here
+  if (!trigger.onclick) {
+    e.preventDefault();
+    // Call the global function from terminos.js
+    if (window.openTermsModal) window.openTermsModal(false);
+  }
 }, true);
 
 // arranque de la app
