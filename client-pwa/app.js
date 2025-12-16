@@ -795,7 +795,7 @@ async function main() {
     const badge = document.getElementById('notif-counter');
 
     // Terms + Inbox wiring
-    wireTermsModalBehavior();
+    // wireTermsModalBehavior(); // Removed (legacy)
     wireInboxModal();
 
     if (user) {
