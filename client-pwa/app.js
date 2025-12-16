@@ -400,7 +400,7 @@ function setupAuthScreenListeners() {
     }
   });
 
-  on('show-terms-link', 'click', (e) => { e.preventDefault(); openTermsModal(); });
+  on('show-terms-link', 'click', (e) => { e.preventDefault(); openTermsModalCatchAll(); });
   on('forgot-password-link', 'click', (e) => { e.preventDefault(); Auth.sendPasswordResetFromLogin(); });
   on('close-terms-modal', 'click', closeTermsModal);
 
@@ -969,7 +969,7 @@ function ensureTermsModalPresent() {
   return modal;
 }
 
-function openTermsModalCatchAll() {
+window.openTermsModalCatchAll = function openTermsModalCatchAll() {
   const modal = ensureTermsModalPresent();
 
   // Cargar contenido si está vacío o tiene placeholder
