@@ -34,7 +34,10 @@ jobs:
 
       - name: Build APK (Debug)
         run: |
+          sudo apt-get update
+          sudo apt-get install -y dos2unix
           cd android
+          dos2unix gradlew
           chmod +x gradlew
           ./gradlew assembleDebug
 
