@@ -36,14 +36,16 @@
 
 
 
-  <!-- Firebase compat -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-analytics-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-messaging-compat.js"></script>
+  <!-- FIREBASE (CDN) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <!-- Mensajería (opcional) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js"></script>
 
-  <script type="module" src="./app.js"></script>
+  <!-- Lógica Principal -->
+  <script src="config.js?v=112"></script>
+  <script type="module" src="./app.js?v=112"></script>
 </head>
 
 <body>
@@ -151,7 +153,7 @@
 
     <!-- REGISTRO -->
     <div id="register-screen" class="screen">
-      <h2>Únete al Club</h2>
+      <h2>Únete al Club <small style="font-size:12px; color:#aaa;">(v1.12)</small></h2>
       <p>Completa tus datos para empezar a sumar puntos.</p>
 
       <form id="register-form" class="form-group" onsubmit="return false" autocomplete="on">
