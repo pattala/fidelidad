@@ -218,10 +218,13 @@
           </div>
         </fieldset>
 
-        <div class="terms-container" style="margin-top:12px;">
-          <input type="checkbox" id="register-terms" required>
-          <label for="register-terms">He leído y acepto los <a href="#" id="show-terms-link">Términos y
-              Condiciones</a>.</label>
+        <div class="terms-container" style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="register-terms" required style="width:20px; height:20px; margin:0;">
+          <div style="font-size:14px; line-height:1.2;">
+            <label for="register-terms" style="cursor:pointer; margin-right:4px;">He leído y acepto los</label>
+            <a href="#" id="show-terms-link" style="text-decoration:underline; font-weight:600;">Términos y
+              Condiciones</a>.
+          </div>
         </div>
 
         <button id="register-btn" class="primary-btn" type="button">Crear Cuenta</button>
