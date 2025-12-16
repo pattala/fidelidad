@@ -928,16 +928,15 @@ async function main() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// T&C: interceptar links y abrir modal (Robust Dynamic Fallback)
+// ──────────────────────────────────────────────────────────────
+// T&C: interceptar links y abrir modal (Self-Contained / Zero Dep)
 // ──────────────────────────────────────────────────────────────
 window.openTermsModal = function () {
-  console.log('[T&C] Request to open modal...');
+  console.log('[T&C] Request to open modal (Self-Contained)...');
 
   let m = document.getElementById('terms-modal');
 
-  // 2. Si no existe, crearlo al vuelo (Protección contra caché index.html viejo)
   if (!m) {
-    console.warn('[T&C] Modal not found in DOM. Creating dynamically to bypass cache issues...');
     m = document.createElement('div');
     m.id = 'terms-modal';
     m.style.cssText = 'display:none; position:fixed; inset:0; z-index:20000; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;';
@@ -947,9 +946,7 @@ window.openTermsModal = function () {
           <h3 style="margin:0; font-size:18px;">Términos y Condiciones</h3>
           <button id="close-terms-modal-dynamic" class="secondary-btn" style="padding:4px 8px; font-size:18px; line-height:1; min-width:32px;" aria-label="Cerrar">✕</button>
         </div>
-        <div id="terms-text" style="flex:1; overflow-y:auto; padding-right:4px;">
-          <p>Cargando términos...</p>
-        </div>
+        <div id="terms-text" style="flex:1; overflow-y:auto; padding-right:4px;"></div>
         <div style="margin-top:12px; text-align:right; flex-shrink:0;">
            <button id="accept-terms-btn-modal" class="primary-btn" style="display:none; width:100%;">Aceptar y Continuar</button>
         </div>
@@ -957,18 +954,25 @@ window.openTermsModal = function () {
     `;
     document.body.appendChild(m);
 
-    // Listeners del dinámico
     m.addEventListener('click', (ev) => { if (ev.target === m) m.style.display = 'none'; });
     const btnClose = m.querySelector('#close-terms-modal-dynamic');
     if (btnClose) btnClose.onclick = () => m.style.display = 'none';
   }
 
-  // 3. Cargar contenido 
-  try { loadTermsContent(); } catch (e) { }
+  // Inject content directly (no helper function needed)
+  const contentEl = m.querySelector('#terms-text');
+  if (contentEl) {
+    contentEl.innerHTML = `
+      <p><strong>1. Generalidades:</strong> El programa de fidelización "Club RAMPET" es un beneficio exclusivo para nuestros clientes. La participación implica la aceptación total de los presentes términos.</p>
+      <p><strong>2. Consentimiento:</strong> Al registrarte, autorizás el envío de novedades y, si activás la geolocalización, el uso de tu ubicación para ofertas cercanas.</p>   
+      <p><strong>3. Puntos:</strong> Los puntos no tienen valor monetario ni son transferibles.</p>
+      <p><strong>4. Canje:</strong> Se realiza exclusivamente en el local presentando DNI.</p>
+      <p><strong>5. Validez:</strong> Los puntos tienen fecha de caducidad según normativa vigente.</p>
+      <p><strong>6. Modificaciones:</strong> RAMPET puede modificar estos términos sin previo aviso.</p>
+    `;
+  }
 
-  // 4. Mostrar
   m.style.display = 'flex';
-
   const btn = document.getElementById('accept-terms-btn-modal');
   if (btn) btn.style.display = 'none';
 };
