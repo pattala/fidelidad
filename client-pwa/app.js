@@ -15,7 +15,7 @@ import {
 
 // === DEBUG / OBS ===
 window.__RAMPET_DEBUG = true;
-window.__BUILD_ID = 'pwa-1.10.2-flow-fix';
+window.__BUILD_ID = 'pwa-1.10.3-modal-fix';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
 window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';
@@ -933,12 +933,44 @@ async function main() {
 // ──────────────────────────────────────────────────────────────
 // T&C: interceptar links y abrir modal
 // ──────────────────────────────────────────────────────────────
+function ensureTermsModalPresent() {
+  let modal = document.getElementById('terms-modal');
+  if (modal) return modal;
+
+  console.log('[T&C] Modal no encontrado en HTML (posible caché). Creando fallback dinámico.');
+
+  modal = document.createElement('div');
+  modal.id = 'terms-modal';
+  modal.style.cssText = `
+    display:none; position:fixed; inset:0; z-index:20000; 
+    background:rgba(0,0,0,0.5); align-items:center; justify-content:center;
+  `;
+  modal.innerHTML = `
+    <div style="max-width:720px; width:90%; background:#fff; border-radius:12px; padding:16px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
+        <h3 style="margin:0; font-size:18px;">Términos y Condiciones</h3>
+        <button id="close-terms-modal" class="secondary-btn" style="padding:4px 8px; font-size:18px; line-height:1; min-width:32px;" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="terms-text" style="flex:1; overflow-y:auto; padding-right:4px;">
+        <p>Cargando términos...</p>
+      </div>
+      <div style="margin-top:12px; text-align:right; flex-shrink:0;">
+         <button id="accept-terms-btn-modal" class="primary-btn" style="display:none; width:100%;">Aceptar y Continuar</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Wiring básico del fallback
+  modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none'; });
+  const closeBtn = modal.querySelector('#close-terms-modal');
+  if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
+
+  return modal;
+}
+
 function openTermsModalCatchAll() {
-  const modal = document.getElementById('terms-modal');
-  if (!modal) {
-    console.warn('[T&C] #terms-modal no encontrado en index.html');
-    return;
-  }
+  const modal = ensureTermsModalPresent();
 
   // Cargar contenido si está vacío o tiene placeholder
   const contentEl = document.getElementById('terms-text');
@@ -946,9 +978,9 @@ function openTermsModalCatchAll() {
     try { loadTermsContent(); } catch { }
   }
 
-  // Wiring (listeners) si no se hizo antes
+  // Wiring (listeners) si no se hizo antes (o si es el fallback nuevo)
   if (!modal._wired) {
-    wireTermsModalBehavior();
+    try { wireTermsModalBehavior(); } catch { }
   }
 
   modal.style.display = 'flex';
