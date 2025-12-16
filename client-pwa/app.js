@@ -928,58 +928,61 @@ async function main() {
 }
 
 // ──────────────────────────────────────────────────────────────
-// T&C: interceptar links y abrir modal
+// T&C: interceptar links y abrir modal (Robust Dynamic Fallback)
 // ──────────────────────────────────────────────────────────────
-// ──────────────────────────────────────────────────────────────
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
-        <h3 style="margin:0; font-size:18px;">Términos y Condiciones</h3>
-        <button id="close-terms-modal" class="secondary-btn" style="padding:4px 8px; font-size:18px; line-height:1; min-width:32px;" aria-label="Cerrar">✕</button>
+window.openTermsModal = function () {
+  console.log('[T&C] Request to open modal...');
+
+  let m = document.getElementById('terms-modal');
+
+  // 2. Si no existe, crearlo al vuelo (Protección contra caché index.html viejo)
+  if (!m) {
+    console.warn('[T&C] Modal not found in DOM. Creating dynamically to bypass cache issues...');
+    m = document.createElement('div');
+    m.id = 'terms-modal';
+    m.style.cssText = 'display:none; position:fixed; inset:0; z-index:20000; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;';
+    m.innerHTML = `
+      <div style="max-width:720px; width:90%; background:#fff; border-radius:12px; padding:16px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
+          <h3 style="margin:0; font-size:18px;">Términos y Condiciones</h3>
+          <button id="close-terms-modal-dynamic" class="secondary-btn" style="padding:4px 8px; font-size:18px; line-height:1; min-width:32px;" aria-label="Cerrar">✕</button>
+        </div>
+        <div id="terms-text" style="flex:1; overflow-y:auto; padding-right:4px;">
+          <p>Cargando términos...</p>
+        </div>
+        <div style="margin-top:12px; text-align:right; flex-shrink:0;">
+           <button id="accept-terms-btn-modal" class="primary-btn" style="display:none; width:100%;">Aceptar y Continuar</button>
+        </div>
       </div>
-      <div id="terms-text" style="flex:1; overflow-y:auto; padding-right:4px;">
-        <p>Cargando términos...</p>
-      </div>
-      <div style="margin-top:12px; text-align:right; flex-shrink:0;">
-         <button id="accept-terms-btn-modal" class="primary-btn" style="display:none; width:100%;">Aceptar y Continuar</button>
-      </div>
-    </div >
-  `;
-  document.body.appendChild(modal);
+    `;
+    document.body.appendChild(m);
 
-  // Wiring básico del fallback
-  modal.addEventListener('click', (ev) => { if (ev.target === modal) modal.style.display = 'none'; });
-  const closeBtn = modal.querySelector('#close-terms-modal');
-  if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
-
-  return modal;
-}
-
-window.openTermsModalCatchAll = function openTermsModalCatchAll() {
-  const modal = ensureTermsModalPresent();
-
-  // Cargar contenido si está vacío o tiene placeholder
-  const contentEl = document.getElementById('terms-text');
-  if (contentEl && (contentEl.children.length === 0 || contentEl.textContent.trim() === 'Cargando términos...')) {
-    try { loadTermsContent(); } catch { }
+    // Listeners del dinámico
+    m.addEventListener('click', (ev) => { if (ev.target === m) m.style.display = 'none'; });
+    const btnClose = m.querySelector('#close-terms-modal-dynamic');
+    if (btnClose) btnClose.onclick = () => m.style.display = 'none';
   }
 
-  // Wiring (listeners) si no se hizo antes (o si es el fallback nuevo)
-  if (!modal._wired) {
-    try { wireTermsModalBehavior(); } catch { }
-  }
+  // 3. Cargar contenido 
+  try { loadTermsContent(); } catch (e) { }
 
-  modal.style.display = 'flex';
-}
+  // 4. Mostrar
+  m.style.display = 'flex';
 
+  const btn = document.getElementById('accept-terms-btn-modal');
+  if (btn) btn.style.display = 'none';
+};
+
+// Alias para compatibilidad con cualquier llamada residual
+window.openTermsModalCatchAll = window.openTermsModal;
+
+// Listener global de respaldo
 document.addEventListener('click', (e) => {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-  const trigger = e.target.closest(
-    '#show-terms-link, #show-terms-link-banner, #footer-terms-link,' +
-    '[data-open-terms], a[href="#terminos"], a[href="#terms"], a[href="/terminos"], a[href*="terminos-y-condiciones"]'
-  );
+  const trigger = e.target.closest('#show-terms-link, #show-terms-link-banner, #footer-terms-link');
   if (!trigger) return;
   e.preventDefault();
-  e.stopPropagation();
-  openTermsModalCatchAll();
+  window.openTermsModal();
 }, true);
 
 // arranque de la app
