@@ -14,15 +14,15 @@ const TERMS_CONTENT_HTML = `
 
 // Función global disponible inmediatmente
 window.openTermsModal = function (showAcceptButton = false) {
-    console.log('[T&C] Abriendo modal centralizado...');
+  console.log('[T&C] Abriendo modal centralizado...');
 
-    // 1. Buscar o Crear modal
-    let m = document.getElementById('terms-modal');
-    if (!m) {
-        m = document.createElement('div');
-        m.id = 'terms-modal';
-        m.style.cssText = 'display:none; position:fixed; inset:0; z-index:20000; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;';
-        m.innerHTML = `
+  // 1. Buscar o Crear modal
+  let m = document.getElementById('terms-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'terms-modal';
+    m.style.cssText = 'display:none; position:fixed; inset:0; z-index:2147483647; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;';
+    m.innerHTML = `
       <div style="max-width:720px; width:90%; background:#fff; border-radius:12px; padding:16px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-shrink:0;">
           <h3 style="margin:0; font-size:18px;">Términos y Condiciones</h3>
@@ -34,28 +34,28 @@ window.openTermsModal = function (showAcceptButton = false) {
         </div>
       </div>
     `;
-        document.body.appendChild(m);
+    document.body.appendChild(m);
 
-        // Listeners
-        m.addEventListener('click', (ev) => { if (ev.target === m) m.style.display = 'none'; });
-        const btnClose = m.querySelector('#close-terms-modal-dynamic');
-        if (btnClose) btnClose.onclick = () => m.style.display = 'none';
-    }
+    // Listeners
+    m.addEventListener('click', (ev) => { if (ev.target === m) m.style.display = 'none'; });
+    const btnClose = m.querySelector('#close-terms-modal-dynamic');
+    if (btnClose) btnClose.onclick = () => m.style.display = 'none';
+  }
 
-    // 2. Inyectar contenido (siempre fresco)
-    const contentEl = m.querySelector('#terms-text');
-    if (contentEl) {
-        contentEl.innerHTML = TERMS_CONTENT_HTML;
-    }
+  // 2. Inyectar contenido (siempre fresco)
+  const contentEl = m.querySelector('#terms-text');
+  if (contentEl) {
+    contentEl.innerHTML = TERMS_CONTENT_HTML;
+  }
 
-    // 3. Mostrar botón "Aceptar" solo si se pide
-    const btnAccept = document.getElementById('accept-terms-btn-modal');
-    if (btnAccept) {
-        btnAccept.style.display = showAcceptButton ? 'inline-block' : 'none';
-    }
+  // 3. Mostrar botón "Aceptar" solo si se pide
+  const btnAccept = document.getElementById('accept-terms-btn-modal');
+  if (btnAccept) {
+    btnAccept.style.display = showAcceptButton ? 'inline-block' : 'none';
+  }
 
-    // 4. Mostrar modal
-    m.style.display = 'flex';
+  // 4. Mostrar modal
+  m.style.display = 'flex';
 };
 
 // Alias de compatibilidad
@@ -63,13 +63,13 @@ window.openTermsModalCatchAll = window.openTermsModal;
 
 // Listener global de respaldo (por si app.js falla)
 document.addEventListener('click', (e) => {
-    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    const trigger = e.target.closest('#show-terms-link, #show-terms-link-banner, #footer-terms-link');
-    if (!trigger) return;
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const trigger = e.target.closest('#show-terms-link, #show-terms-link-banner, #footer-terms-link');
+  if (!trigger) return;
 
-    // Si tiene onclick inline, dejamos que eso maneje. Si no, manejamos acá.
-    if (trigger.onclick) return;
+  // Si tiene onclick inline, dejamos que eso maneje. Si no, manejamos acá.
+  if (trigger.onclick) return;
 
-    e.preventDefault();
-    window.openTermsModal(false);
+  e.preventDefault();
+  window.openTermsModal(false);
 }, true);
