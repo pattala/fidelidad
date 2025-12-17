@@ -837,15 +837,8 @@ async function main() {
   setupFirebase();
   const messagingSupported = await checkMessagingSupport();
 
-  // Cargar configuración unificada (App + Gamification)
-  try {
-    const configSnap = await db.collection('config').doc('gamification').get();
-    window.GAMIFICATION_CONFIG = configSnap.exists ? configSnap.data() : { pointsForAddress: 50 }; // Default fallback
-    console.log('[GAMIFICATION] Config loaded:', window.GAMIFICATION_CONFIG);
-  } catch (e) {
-    console.warn('[GAMIFICATION] Cloud config failed, using defaults.', e);
-    window.GAMIFICATION_CONFIG = { pointsForAddress: 50 };
-  }
+  // Config Default Inicial (para evitar errores en login/registro temprano)
+  window.GAMIFICATION_CONFIG = { pointsForAddress: 50 };
 
   auth.onAuthStateChanged(async (user) => {
     const bell = document.getElementById('btn-notifs');
@@ -856,6 +849,21 @@ async function main() {
     wireInboxModal();
 
     if (user) {
+      // ─────────────────────────────────────────────
+      // App Privada (Usuario Logueado)
+      // ─────────────────────────────────────────────
+
+      // 1. Cargar Configuración Gamification (Ahora que tenemos permiso)
+      try {
+        const configSnap = await db.collection('config').doc('gamification').get();
+        if (configSnap.exists) {
+          window.GAMIFICATION_CONFIG = configSnap.data();
+          // console.log('[GAMIFICATION] Config loaded:', window.GAMIFICATION_CONFIG);
+        }
+      } catch (e) {
+        // console.warn('[GAMIFICATION] Cloud config failed, using defaults.', e);
+      }
+
       const justSignedUp = localStorage.getItem('justSignedUp') === '1';
       console.log('[DEBUG-AUTH] User:', user.uid, 'justSignedUp:', justSignedUp, 'LS:', localStorage.getItem('justSignedUp'));
 
