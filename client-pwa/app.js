@@ -380,7 +380,7 @@ function setupAuthScreenListeners() {
     }
   });
 
-  on('show-terms-link', 'click', (e) => { e.preventDefault(); if (window.openTermsModal) window.openTermsModal(); });
+  // on('show-terms-link') removed (handled by global delegation or inline onclick)
   on('forgot-password-link', 'click', (e) => { e.preventDefault(); Auth.sendPasswordResetFromLogin(); });
   // on('close-terms-modal') removido (ahora local en terminos.js)
 
