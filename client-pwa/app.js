@@ -834,6 +834,9 @@ async function setupAddressSection() {
 
 // ──────────────────────────────────────────────────────────────
 async function main() {
+  setupFirebase();
+  const messagingSupported = await checkMessagingSupport();
+
   // Cargar configuración unificada (App + Gamification)
   try {
     const configSnap = await db.collection('config').doc('gamification').get();
@@ -843,9 +846,6 @@ async function main() {
     console.warn('[GAMIFICATION] Cloud config failed, using defaults.', e);
     window.GAMIFICATION_CONFIG = { pointsForAddress: 50 };
   }
-
-  setupFirebase();
-  const messagingSupported = await checkMessagingSupport();
 
   auth.onAuthStateChanged(async (user) => {
     const bell = document.getElementById('btn-notifs');
