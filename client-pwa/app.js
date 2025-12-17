@@ -682,6 +682,47 @@ function wireAddressDatalists(prefix = 'dom-') {
   reorderAddressFields(prefix);
 }
 
+// —— Mission Card Logic
+function checkMissionStatus(hasAddress, dismissedOnServer) {
+  const card = document.getElementById('mission-address-card');
+  const btn = document.getElementById('mission-address-btn');
+  const pointsEl = document.getElementById('mission-address-points');
+  if (!card || !btn) return;
+
+  // 1. Config Check
+  const points = window.GAMIFICATION_CONFIG?.pointsForAddress || 50;
+  if (pointsEl) pointsEl.textContent = points;
+
+  // 2. Hide if address exists OR dismissed on server (though missions usually persist until done)
+  // Strategy: Missions should persist unless completed. Dismissing logic might apply to "nagging banner", but Mission is "opportunity".
+  // Let's hide if hasAddress is true.
+  if (hasAddress) {
+    card.style.display = 'none';
+    return;
+  }
+
+  // 3. Show Mission
+  card.style.display = 'block';
+
+  // 4. Wire Button (Reuse logic: open address card)
+  if (!btn._wired) {
+    btn._wired = true;
+    btn.addEventListener('click', () => {
+      const addressCard = document.getElementById('address-card');
+      const banner = document.getElementById('address-banner');
+      if (addressCard) {
+        addressCard.style.display = 'block';
+        try { window.scrollTo({ top: addressCard.offsetTop - 60, behavior: 'smooth' }); } catch { }
+      }
+      if (banner) banner.style.display = 'none';
+
+      // Init form dependencies if needed
+      import('./modules/notifications.js').then(mod => mod.initDomicilioForm?.()).catch(() => { });
+    });
+  }
+}
+
+
 // —— Address/banner wiring
 // —— Address/banner wiring
 async function setupAddressSection() {
@@ -774,6 +815,9 @@ async function setupAddressSection() {
     deferredSession = false;
   }
 
+  // Update Mission Card
+  checkMissionStatus(hasAddress, dismissedOnServer);
+
   // Combinamos: si lo marcó local O servidor, se considera dismiss
   const dismissed = dismissedLocal || dismissedOnServer;
 
@@ -790,6 +834,16 @@ async function setupAddressSection() {
 
 // ──────────────────────────────────────────────────────────────
 async function main() {
+  // Cargar configuración unificada (App + Gamification)
+  try {
+    const configSnap = await db.collection('config').doc('gamification').get();
+    window.GAMIFICATION_CONFIG = configSnap.exists ? configSnap.data() : { pointsForAddress: 50 }; // Default fallback
+    console.log('[GAMIFICATION] Config loaded:', window.GAMIFICATION_CONFIG);
+  } catch (e) {
+    console.warn('[GAMIFICATION] Cloud config failed, using defaults.', e);
+    window.GAMIFICATION_CONFIG = { pointsForAddress: 50 };
+  }
+
   setupFirebase();
   const messagingSupported = await checkMessagingSupport();
 

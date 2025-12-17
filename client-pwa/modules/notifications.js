@@ -1493,6 +1493,38 @@ export async function initDomicilioForm() {
         try { await updateGeoUI(); } catch (e4) { }
         emit('rampet:geo:changed', { enabled: true });
 
+        // ─────────────────────────────────────────────
+        // GAMIFICATION: Award Points for Address
+        // ─────────────────────────────────────────────
+        try {
+          const idToken = await current.getIdToken();
+          const pointsAward = window.GAMIFICATION_CONFIG?.pointsForAddress || 50;
+
+          const r = await fetch('/api/assign-points', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              reason: 'profile_address'
+              // uid is inferred from token in User Mode
+            })
+          });
+
+          const res = await r.json();
+          if (res.ok && res.pointsAdded > 0) {
+            toast(`¡Domicilio guardado! +${res.pointsAdded} Puntos 🎁`, 'success');
+          } else if (res.message === 'Already awarded') {
+            toast('Domicilio actualizado.', 'success');
+          } else {
+            toast('Domicilio guardado.', 'success');
+          }
+        } catch (errPoints) {
+          console.warn('[GAMIFICATION] Error awarding points:', errPoints);
+          toast('Domicilio guardado.', 'success');
+        }
+
         try {
           const summary = $('prof-address-summary');
           if (summary) summary.textContent = addressLine || '—';

@@ -242,30 +242,49 @@ export async function registerNewAccount() {
         acceptedAt: new Date().toISOString(),
         version: null,
         url: null,
-        source: 'pwa'
       }
     };
 
     // 3) guardar en clientes/{uid}
     await db.collection('clientes').doc(uid).set(baseDoc, { merge: true });
 
-    // 4) pedir N° de socio al server (mismo backend del panel)
+    // 4) Asignar N° Socio (API interna)
     try {
-      const r = await fetch(`${NOTIF_BASE}/api/assign-socio-number`, {
+      const token = await cred.user.getIdToken();
+
+      // Llamada: asignar N° Socio
+      const rSocio = await fetch('/api/assign-socio-number', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': API_KEY
-        },
-        body: JSON.stringify({ docId: uid }) // ← sin sendWelcome
+        headers: { 'Content-Type': 'application/json', 'x-api-key': 'ADMIN_KEY_SI_NECESARIO_O_TOKEN' }, // PWA usa token internamente o API key si es pública
+        body: JSON.stringify({ docId: uid, sendWelcome: true })
       });
-      const j = await r.json().catch(() => ({}));
-      console.log('[assign-socio-number][PWA]', r.status, j);
+      const dSocio = await rSocio.json();
+      console.log('[assign-socio-number][PWA]', rSocio.status, dSocio);
+
+      // ─────────────────────────────────────────────
+      // GAMIFICATION: Welcome Bonus (Address provided)
+      // ─────────────────────────────────────────────
+      if (hasAny) {
+        try {
+          const pointsAward = window.GAMIFICATION_CONFIG?.pointsForAddress || 50;
+          await fetch('/api/assign-points', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason: 'profile_address' })
+          });
+          UI.showToast(`¡Bienvenida! Ganaste +${pointsAward} Puntos por tus datos 🎁`, 'success');
+        } catch (ePoints) {
+          console.warn('[Gamification] Welcome bonus error', ePoints);
+        }
+      }
 
       // Si el server devuelve el número, lo reflejamos por las dudas
-      if (r.ok && Number.isInteger(j?.numeroSocio)) {
+      if (rSocio.ok && Number.isInteger(dSocio?.numeroSocio)) {
         await db.collection('clientes').doc(uid).set(
-          { numeroSocio: j.numeroSocio },
+          { numeroSocio: dSocio.numeroSocio },
           { merge: true }
         );
       } else {
