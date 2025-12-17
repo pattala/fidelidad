@@ -354,6 +354,9 @@ function getInstallInstructions() {
 // LISTENERS Auth/Main
 // ──────────────────────────────────────────────────────────────
 function setupAuthScreenListeners() {
+  if (window.__APP_RUNTIME__?.authListenersWired) return;
+  (window.__APP_RUNTIME__ ||= {}).authListenersWired = true;
+
   const on = (id, event, handler) => { const el = document.getElementById(id); if (el) el.addEventListener(event, handler); };
 
   on('show-register-link', 'click', (e) => {
