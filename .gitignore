@@ -23,6 +23,4 @@ Thumbs.db
 .idea/
 
 # Generated Configuration
-admin-panel/config.js
-client-pwa/config.js
-client-pwa/manifest.json
+
