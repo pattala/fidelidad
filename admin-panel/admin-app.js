@@ -14,13 +14,30 @@ import * as Notificaciones from './modules/notificaciones.js';
 import * as Campanas from './modules/campanas.js';
 import * as UI from './modules/ui.js';
 
+// Referencias DOM
 const loginScreen = document.getElementById('login-screen');
+const mainAppScreen = document.getElementById('main-app-screen');
 const adminPanel = document.getElementById('admin-panel');
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 
+// [FIX] Aislamiento de Sesión: Usar SESSION storage para el Admin.
+// Esto evita que el login del Admin pise el login de la PWA (localStorage) si están en el mismo dominio.
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+  .then(() => {
+    // Configurar listener de estado
+    auth.onAuthStateChanged(handleAuthStateChange);
+  })
+  .catch((error) => {
+    console.error("Error seteando persistencia:", error);
+    // Fallback por si falla (ej. settings de privacidad)
+    auth.onAuthStateChanged(handleAuthStateChange);
+  });
+
+/**
+ * Manejo centralizado del estado de autenticación
+ */
 function main() {
-  auth.onAuthStateChanged(handleAuthStateChange);
   loginBtn.addEventListener('click', loginAdmin);
   logoutBtn.addEventListener('click', logoutAdmin);
   document.getElementById('forgot-password-admin-link').addEventListener('click', (e) => {

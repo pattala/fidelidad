@@ -86,17 +86,40 @@ export default async function handler(req, res) {
 
   if (req.method === "OPTIONS") return res.status(204).end();
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method Not Allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
-  // API key Check (Seguridad)
-  const clientKey = req.headers["x-api-key"];
-  if (process.env.API_SECRET_KEY && (!clientKey || clientKey !== process.env.API_SECRET_KEY)) {
-    console.warn("Unauthorized attempt to assign-socio-number");
-    return res.status(401).json({ ok: false, error: "Unauthorized" });
+  // ─── AUTHENTICATION (Mejorada: API Key OR Bearer Token) ───
+  let authorized = false;
+
+  // 1. API Key Check (Legacy/System)
+  const clientKey = req.headers['x-api-key'];
+  if (clientKey && clientKey === process.env.API_SECRET_KEY) {
+    authorized = true;
   }
 
+  // 2. Bearer Token Check (Client/PWA)
+  if (!authorized) {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const idToken = authHeader.split("Bearer ")[1];
+      try {
+        initFirebaseAdmin();
+        // Verificamos el token con Firebase Admin
+        await admin.auth().verifyIdToken(idToken);
+        // Nota: Para asignar socio no requerimos ser Admin, solo un usuario válido.
+        authorized = true;
+      } catch (e) {
+        console.warn("[assign-socio] Invalid Token:", e.message);
+      }
+    }
+  }
+
+  if (!authorized) {
+    return res.status(401).json({ success: false, error: 'Unauthorized: Invalid Key or Token' });
+  }
+  // ──────────────────────────────────────────────────────────
   // Body Parsing
   let payload = {};
   try {
