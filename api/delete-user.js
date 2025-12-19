@@ -32,11 +32,15 @@ function getDb() {
    CORS
    ──────────────────────────────────────────────────────────── */
 function getAllowedOrigin(req) {
-  const allowed = (process.env.CORS_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean);
+  // Configuración más permisiva por defecto para evitar errores CORS en setups nuevos
+  const envAllowed = process.env.CORS_ALLOWED_ORIGINS;
+
+  // Si no hay variable definida, permitimos el origen de la petición (modo desarrollo/demo)
+  if (!envAllowed) return req.headers.origin || "*";
+
+  const allowed = envAllowed.split(",").map(s => s.trim()).filter(Boolean);
   const origin = req.headers.origin;
+
   if (origin && allowed.includes(origin)) return origin;
   return allowed[0] || "";
 }

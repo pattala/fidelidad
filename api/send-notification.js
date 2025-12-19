@@ -46,25 +46,33 @@ function chunkArray(arr = [], size = 500) {
 }
 function isInvalidTokenError(code = "") {
   return code.includes("registration-token-not-registered")
-      || code.includes("invalid-registration-token")
-      || code.includes("messaging/registration-token-not-registered")
-      || code.includes("messaging/invalid-registration-token")
-      || code.includes("invalid-argument"); // Admin SDK puede mapear así
+    || code.includes("invalid-registration-token")
+    || code.includes("messaging/registration-token-not-registered")
+    || code.includes("messaging/invalid-registration-token")
+    || code.includes("invalid-argument"); // Admin SDK puede mapear así
 }
 
 // ---------- Utilidades CORS / Auth ----------
 function parseAllowedOrigins() {
   const raw = (process.env.CORS_ALLOWED_ORIGINS || "").trim();
-  if (!raw) return [];
+  if (!raw) return null; // Retornar null para indicar que no hay restricción
   return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
+
 function applyCors(req, res) {
   const allowed = parseAllowedOrigins();
   const origin = req.headers.origin || "";
-  if (allowed.includes(origin)) {
+
+  if (!allowed) {
+    // Modo permisivo si no hay variable de entorno
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+    res.setHeader("Vary", "Origin");
+  } else if (allowed.includes(origin)) {
+    // Modo restricto si hay variable
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
   }
+
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 }
@@ -156,10 +164,10 @@ async function resolveDestinatarios({ db, tokens = [], audience, clienteId }) {
 async function createInboxSent({ db, clienteId, notifId, dataForDoc, token }) {
   const ref = db.collection("clientes").doc(clienteId).collection("inbox").doc(notifId);
   const base = {
-    title:  dataForDoc.title || "",
-    body:   dataForDoc.body  || "",
-    url:    dataForDoc.url   || "/notificaciones",
-    tag:    dataForDoc.tag   || null,
+    title: dataForDoc.title || "",
+    body: dataForDoc.body || "",
+    url: dataForDoc.url || "/notificaciones",
+    tag: dataForDoc.tag || null,
     source: dataForDoc.source || "simple",
     campaignId: dataForDoc.campaignId || null,
     status: "sent",
@@ -234,7 +242,7 @@ export default async function handler(req, res) {
   }
 
   // Tokens para envío = tokens de entrada (si hay) + tokens resueltos por audience/cliente
-  let sendTokens = unique([ ...tokens, ...destinatarios.map(d => d.token) ]);
+  let sendTokens = unique([...tokens, ...destinatarios.map(d => d.token)]);
 
   if (!sendTokens.length) {
     return res.status(400).json({ ok: false, error: "Faltan tokens o audience.docIds." });
@@ -250,7 +258,7 @@ export default async function handler(req, res) {
     body: msgBody,
     click_action,
     url: (extraData && extraData.url) ? extraData.url : click_action,
-    icon:  icon  || process.env.PUSH_ICON_URL  || "",
+    icon: icon || process.env.PUSH_ICON_URL || "",
     badge: badge || process.env.PUSH_BADGE_URL || "",
     type: "simple",
     ...extraData,
@@ -324,9 +332,9 @@ export default async function handler(req, res) {
   try {
     const dataForDoc = {
       title: data.title,
-      body:  data.body,
-      url:   data.url || data.click_action || "/notificaciones",
-      tag:   data.tag || null,
+      body: data.body,
+      url: data.url || data.click_action || "/notificaciones",
+      tag: data.tag || null,
       source: extraData?.source || "simple",
       campaignId: extraData?.campaignId || null,
     };

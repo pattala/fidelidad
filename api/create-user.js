@@ -27,21 +27,28 @@ function getDb() {
 }
 
 // ---------- CORS ----------
-function getAllowedOrigin(req) {
-  const allowed = (process.env.CORS_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map(s => s.trim())
-    .filter(Boolean);
-  const origin = req.headers.origin;
-  if (origin && allowed.includes(origin)) return origin;
-  return allowed[0] || "";
+function parseAllowedOrigins() {
+  const raw = (process.env.CORS_ALLOWED_ORIGINS || "").trim();
+  if (!raw) return null; // Retornar null para indicar que no hay restricción
+  return raw.split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-function setCors(res, origin) {
-  if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
-  res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS, GET");
+function applyCors(req, res) {
+  const allowed = parseAllowedOrigins();
+  const origin = req.headers.origin || "";
+
+  if (!allowed) {
+    // Modo permisivo si no hay variable de entorno
+    res.setHeader("Access-Control-Allow-Origin", origin || "*");
+    res.setHeader("Vary", "Origin");
+  } else if (allowed.includes(origin)) {
+    // Modo restricto si hay variable
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+  }
+
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-api-key, Authorization");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 }
 
 // ---------- Body seguro ----------
@@ -66,8 +73,7 @@ function nowTs() {
 
 // ---------- Handler ----------
 export default async function handler(req, res) {
-  const allowOrigin = getAllowedOrigin(req);
-  setCors(res, allowOrigin);
+  applyCors(req, res);
 
   if (req.method === "OPTIONS") return res.status(204).end();
 
@@ -75,7 +81,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       ok: true,
       route: "/api/create-user",
-      corsOrigin: allowOrigin || null,
+      corsOrigin: req.headers.origin || "*",
       project: "sistema-fidelizacion",
       tips: "POST con x-api-key y body { email, dni(password), nombre?, telefono?, numeroSocio?, fechaNacimiento?, fechaInscripcion?, domicilio? }",
     });
