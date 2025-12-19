@@ -427,6 +427,10 @@ function deleteDb(name) {
   return new Promise((resolve) => { try { const req = indexedDB.deleteDatabase(name); req.onsuccess = req.onerror = req.onblocked = () => resolve(); } catch (e) { resolve(); } });
 }
 async function hardResetFcmStores() {
+  console.warn('[FCM] hardResetFcmStores LLAMADO - Bloqueado para evitar borrar sesión de Auth.');
+  return;
+  /* 
+  // 🚫 FIX: Desactivado porque borra 'firebase-installations' y rompe Auth
   try { localStorage.removeItem('fcmToken'); } catch (e) { }
   await deleteDb('firebase-messaging-database');
   await deleteDb('firebase-installations-database');
@@ -437,6 +441,7 @@ async function hardResetFcmStores() {
     await navigator.serviceWorker.ready;
   } catch (e) { }
   await sleep(300);
+  */
 }
 async function getTokenWithRetry(reg, vapidKey, maxTries = 6) {
   while (__tokenReqLock) { try { await __tokenReqLock; } catch (e) { } }
@@ -458,7 +463,8 @@ async function getTokenWithRetry(reg, vapidKey, maxTries = 6) {
         }
         if (isBadRequestOnDelete(e) && !__hardResetAttempted) {
           __hardResetAttempted = true;
-          console.warn('[FCM] 400 DELETE. Hard reset y reintento…');
+          console.warn('[FCM] 400 DELETE detected. Error original:', e);
+          console.warn('[FCM] Intentando Hard Reset (Bloqueado)...');
           await hardResetFcmStores();
           attempt = 0;
           continue;
