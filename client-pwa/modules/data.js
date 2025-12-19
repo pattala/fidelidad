@@ -448,8 +448,10 @@ export async function listenToClientData(user, opts = {}) {
           listenToClientData(user, { ...opts, retries: (opts.retries || 0) + 1 });
         }, 2000);
       } else {
-        console.error("[PWA] Error fatal en datos. Cerrando sesión.", error);
-        Auth.logout();
+        console.error("[PWA] Error fatal en datos (Firestore).", error);
+        UI.showToast("Error de conexión. Intenta recargar.", "error");
+        // 🚫 FIX: No desloguear automáticamente por errores de red/datos.
+        // Auth.logout();
       }
     });
   } catch (e) {

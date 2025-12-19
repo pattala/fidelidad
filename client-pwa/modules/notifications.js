@@ -69,7 +69,7 @@ let __tailRetryScheduled = false;
 let __tokenProvisionPending = false;
 
 const SW_PATH = './firebase-messaging-sw.js';
-const AUTO_RESUBSCRIBE = true;
+const AUTO_RESUBSCRIBE = false; // 🚫 FIX: Desactivado para evitar loop de crash en getToken
 
 /* ────────────────────────────────────────────────────────────
    ANTI “checked por HTML” — Perfil NOTIFS arranca OFF
