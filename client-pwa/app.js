@@ -835,6 +835,7 @@ async function setupAddressSection() {
 // ──────────────────────────────────────────────────────────────
 async function main() {
   setupFirebase();
+  try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); console.log('[Auth] Persistent LOCAL set.'); } catch (e) { console.warn('Persistence error', e); }
   const messagingSupported = await checkMessagingSupport();
 
   // Config Default Inicial (para evitar errores en login/registro temprano)
@@ -953,6 +954,7 @@ async function main() {
       } catch (e) { console.warn('[INBOX] realtime no iniciado:', e?.message || e); }
 
     } else {
+      console.log('[Auth] State Changed: User is NULL. Trace:', new Error().stack);
       // 🔹 Nuevo: al desloguearse, reseteamos el "Luego" del banner de domicilio
       try {
         sessionStorage.removeItem('addressBannerDeferred');

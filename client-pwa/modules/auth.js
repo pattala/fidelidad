@@ -384,6 +384,7 @@ export async function changePassword() {
 // LOGOUT
 // ──────────────────────────────────────────────────────────────
 export async function logout() {
+  console.trace('[Auth] Logout called trace');
   try {
     cleanupListener?.();
     await auth.signOut();
