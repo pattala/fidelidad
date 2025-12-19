@@ -6,7 +6,15 @@
             "destination": "/api/$1"
         },
         {
-            "source": "/((?!api/.*).*)",
+            "source": "/admin",
+            "destination": "/admin-panel/index.html"
+        },
+        {
+            "source": "/admin/(.*)",
+            "destination": "/admin-panel/$1"
+        },
+        {
+            "source": "/((?!api/|admin|admin/).*)",
             "destination": "/client-pwa/$1"
         }
     ]
