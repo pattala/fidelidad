@@ -212,6 +212,9 @@ export async function registerNewAccount() {
     const cred = await auth.createUserWithEmailAndPassword(email, password);
     const uid = cred.user.uid;
 
+    // Feedback inmediato
+    try { UI.showToast("Cuenta creada. Configurando perfil...", "info"); } catch { }
+
     // 2) documento base
     const baseDoc = {
       authUID: uid,

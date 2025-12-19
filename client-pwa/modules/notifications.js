@@ -99,7 +99,14 @@ function bootstrapFirstSessionUX() {
     // NOTIFS → primera vez sin estado local: muestro card de marketing
     let st = null;
     try { st = localStorage.getItem(LS_NOTIF_STATE); } catch (e) { }
-    if (st == null) { show($('notif-prompt-card'), true); show($('notif-card'), false); }
+
+    // Fix UX: Si acaba de registrarse, NO mostrar banner de marketing inmediato
+    const justSignedUp = !!localStorage.getItem('justSignedUp');
+
+    if (st == null && !justSignedUp) {
+      show($('notif-prompt-card'), true);
+      show($('notif-card'), false);
+    }
 
     // GEO / DOMICILIO
     ensureAddressBannerButtons();

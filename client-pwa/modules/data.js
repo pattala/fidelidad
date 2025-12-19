@@ -420,89 +420,59 @@ export async function listenToClientData(user, opts = {}) {
       .where("authUID", "==", user.uid); // ← SIN limit(1), queremos ver TODOS
 
     unsubscribeCliente = clienteQuery.onSnapshot(snapshot => {
+      // (código de éxito igual)
       if (snapshot.empty) {
-        UI.showToast("Error: Tu cuenta no está vinculada a ninguna ficha de cliente.", "error");
+        UI.showToast("Error: Cuenta sin ficha de cliente.", "error");
         Auth.logout();
         return;
       }
-
       const docs = snapshot.docs;
-
-      // Si hay más de una ficha con el mismo authUID, lo logueamos para poder limpiar datos
-      if (docs.length > 1) {
-        console.warn(
-          "[PWA] ALERTA: Hay más de una ficha de cliente con el mismo authUID.",
-          {
-            authUID: user.uid,
-            ids: docs.map(d => d.id)
-          }
-        );
-      }
-
-      // ────────────── Heurística para elegir UNA ficha de cliente ──────────────
+      // ... (selección de ficha igual) ...
       let chosen = docs;
-
-      // 1) Preferir estado !== 'baja'
-      const activos = chosen.filter(d => {
-        const e = (d.data().estado || "activo");
-        return e !== "baja";
-      });
+      const activos = chosen.filter(d => (d.data().estado || "activo") !== "baja");
       if (activos.length > 0) chosen = activos;
-
-      // 2) Preferir el que tenga numeroSocio
       const conNumero = chosen.filter(d => d.data().numeroSocio != null);
-      if (conNumero.length === 1) {
-        chosen = conNumero;
-      } else if (conNumero.length > 1) {
-        chosen = conNumero;
-      }
-
-      // 3) Preferir el que tenga domicilio.addressLine no vacío
+      if (conNumero.length === 1) chosen = conNumero;
+      else if (conNumero.length > 1) chosen = conNumero;
       const conDomicilio = chosen.filter(d => {
         const dom = d.data().domicilio;
         return dom && typeof dom.addressLine === "string" && dom.addressLine.trim().length > 0;
       });
-      if (conDomicilio.length === 1) {
-        chosen = conDomicilio;
-      } else if (conDomicilio.length > 1) {
-        chosen = conDomicilio;
-      }
+      if (conDomicilio.length === 1) chosen = conDomicilio;
+      else if (conDomicilio.length > 1) chosen = conDomicilio;
 
-      // 4) Si hay createdAt, elegir el más antiguo
+      // createdAt sort
       const conCreatedAt = chosen.filter(d => !!d.data().createdAt);
       if (conCreatedAt.length > 0) {
         chosen = [conCreatedAt.reduce((best, d) => {
-          try {
-            const ts = d.data().createdAt;
-            const bestTs = best.data().createdAt;
-            if (!bestTs) return d;
-            if (!ts) return best;
-            return ts.toMillis() < bestTs.toMillis() ? d : best;
-          } catch {
-            return best;
-          }
+          try { return d.data().createdAt.toMillis() < best.data().createdAt.toMillis() ? d : best; } catch { return best; }
         }, conCreatedAt[0])];
       }
 
-      const doc = chosen[0]; // ← elegimos finalmente uno solo
+      const doc = chosen[0];
       clienteRef = doc.ref;
-
       const raw = doc.data() || {};
       const safeConfig = (raw.config && typeof raw.config === 'object') ? { ...raw.config } : {};
-      clienteData = { ...raw, config: safeConfig }; // <- config siempre es objeto
-
-      try {
-        document.dispatchEvent(new CustomEvent('rampet:cliente-updated', { detail: { cliente: clienteData } }));
-      } catch { }
-
+      clienteData = { ...raw, config: safeConfig };
+      try { document.dispatchEvent(new CustomEvent('rampet:cliente-updated', { detail: { cliente: clienteData } })); } catch { }
       renderizarPantallaPrincipal(opts);
+
     }, (error) => {
-      console.error("[PWA] Error en listener de cliente:", error);
-      Auth.logout();
+      console.warn("[PWA] Error en listener de cliente:", error.code || error);
+      if ((error.code === 'permission-denied' || error.message?.includes('permission')) && (!opts.retries || opts.retries < 3)) {
+        console.log('[PWA] Reintentando suscripción en 2s...');
+        setTimeout(() => {
+          listenToClientData(user, { ...opts, retries: (opts.retries || 0) + 1 });
+        }, 2000);
+      } else {
+        console.error("[PWA] Error fatal en datos. Cerrando sesión.", error);
+        Auth.logout();
+      }
     });
   } catch (e) {
     console.error("[PWA] Error seteando listener de cliente:", e);
-    Auth.logout();
+    // Don't logout instantly purely on setup error, retry once?
+    setTimeout(() => { Auth.logout(); }, 1000);
   }
 }
 
