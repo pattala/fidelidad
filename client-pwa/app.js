@@ -835,7 +835,9 @@ async function setupAddressSection() {
 // ──────────────────────────────────────────────────────────────
 async function main() {
   setupFirebase();
-  try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); console.log('[Auth] Persistent LOCAL set.'); } catch (e) { console.warn('Persistence error', e); }
+  // 🚫 FIX: No forzar persistencia aquí. Firebase Web usa LOCAL por defecto.
+  // Forzarlo causa condiciones de carrera con Admin Panel (SESSION) en el mismo dominio.
+  // try { await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL); console.log('[Auth] Persistent LOCAL set.'); } catch (e) { console.warn('Persistence error', e); }
   const messagingSupported = await checkMessagingSupport();
 
   // Config Default Inicial (para evitar errores en login/registro temprano)

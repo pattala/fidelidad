@@ -830,10 +830,11 @@ async function hookOnMessage() {
       try {
         const reg = await navigator.serviceWorker.getRegistration(SW_PATH) || await navigator.serviceWorker.getRegistration();
         if (reg && reg.showNotification) {
-          await reg.showNotification(d.title || 'RAMPET', {
+          const defaultTitle = window.APP_CONFIG?.appName || 'Club de Fidelidad';
+          await reg.showNotification(d.title || defaultTitle, {
             body: d.body || '',
             icon: d.icon || '/images/mi_logo_192.png',
-            tag: d.tag || d.id || 'rampet-fg',
+            tag: d.tag || d.id || 'loyalty-app-fg',
             data: { url: d.url || d.click_action || '/?inbox=1' }
           });
         }

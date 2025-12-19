@@ -59,13 +59,13 @@ self.addEventListener('fetch', (event) => {
 function normPayload(payload = {}) {
   const d = payload?.data || {};
   const url = d.url || d.click_action || '/notificaciones';
-  const id  = d.id ? String(d.id) : undefined;
+  const id = d.id ? String(d.id) : undefined;
   const tag = (d.tag && String(d.tag)) || (id ? `push-${id}` : 'rampet');
   return {
     id,
-    title: d.title || d.titulo || 'RAMPET',
-    body:  d.body  || d.cuerpo || '',
-    icon:  d.icon  || 'https://rampet.vercel.app/images/mi_logo_192.png',
+    title: d.title || d.titulo || 'Club de Beneficios',
+    body: d.body || d.cuerpo || '',
+    icon: d.icon || 'https://rampet.vercel.app/images/mi_logo_192.png',
     badge: d.badge || undefined,
     url,
     tag
@@ -81,7 +81,7 @@ messaging.onBackgroundMessage(async (payload) => {
   try {
     const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     list.forEach(c => c.postMessage({ type: 'PUSH_DELIVERED', data: d }));
-  } catch {}
+  } catch { }
 
   const opts = {
     body: d.body,
