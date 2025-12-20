@@ -635,12 +635,16 @@ function refreshNotifUIFromPermission() {
       show(cardSwitch, true); // switch ON visible
       showNotifOffBanner(false);
     } else {
-      if (!pending) {
-        debugLog('UI', 'Permiso granted PERO sin token. Mostrando switch/banner.');
+      // 🔄 FIX: Si ya aceptó (server/local) y está 'provisioning', NO mostrar banner de reclamo
+      if (lsState === 'accepted' || pending) {
+        debugLog('UI', 'Permiso granted + Estado Accepted/Pending. Ocultando banner (recuperando token...).');
+        show(cardMarketing, false); // <--- CLAVE: Ocultar banner de "Activar"
+        show(cardSwitch, true);
+        showNotifOffBanner(false);
+      } else {
+        debugLog('UI', 'Permiso granted PERO sin token ni estado accepted. Mostrando switch/banner.');
         show(cardSwitch, true);
         showNotifOffBanner(true); // Avisar que falta activar "en la app"
-      } else {
-        debugLog('UI', 'Permiso granted, provisionando token...');
       }
     }
     return;
