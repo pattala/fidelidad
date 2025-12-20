@@ -225,8 +225,8 @@ export default async function handler(req, res) {
       const fsPayload = buildFsPayload(false);
       await fsDocRef.set(fsPayload, { merge: true });
     } else {
-      // nuevo → docId opcional
-      fsDocRef = docId ? col.doc(docId) : col.doc();
+      // nuevo → docId opcional, SINO usar authUID (para evitar fantasmas)
+      fsDocRef = docId ? col.doc(docId) : col.doc(authUID);
       const newDoc = buildFsPayload(true);
       await fsDocRef.set(newDoc);
       createdFs = true;
