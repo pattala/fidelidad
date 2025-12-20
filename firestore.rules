@@ -84,8 +84,9 @@ service cloud.firestore {
 
     // Configuración (usuarios logueados leen; admin escribe)
     // Legacy: configuracion
+    // Legacy: configuracion
     match /configuracion/{docId} {
-      allow read: if isSignedIn();
+      allow read: if true; // Public parameters (cooldowns, points config)
       allow write: if isAdmin();
     }
     // New: config

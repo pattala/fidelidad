@@ -942,7 +942,7 @@ function wirePushButtonsOnce() {
     laterBtn._wired = true;
     laterBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      debugLog('UI', 'Usuario eligió "Más adelante" -> Cooldown 5 días.');
+      debugLog('UI', `Usuario eligió "Más adelante" -> Cooldown ${NOTIF_MINI_INTERVAL_DAYS} días.`);
       try {
         const until = Date.now() + COOLDOWN_DAYS_MS;
         localStorage.setItem(LS_NOTIF_SUPPRESS_UNTIL, until.toString());
