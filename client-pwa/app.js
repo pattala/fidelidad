@@ -21,10 +21,21 @@ window.__reportState = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';
   let swReady = false;
   try { swReady = !!(await navigator.serviceWorker?.getRegistration?.('/')); } catch { }
-  const fcm = localStorage.getItem('fcmToken') ? 'present' : 'missing';
+  const fcm = localStorage.getItem('fcmToken') ? 'PRESENT' : 'MISSING';
+  const lsState = localStorage.getItem('notifState') || 'null';
   let geo = 'n/a';
   try { if (navigator.permissions?.query) geo = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch { }
-  d(`STATE@${where}`, { notifPerm, swReady, fcm, geo });
+
+  console.group(`🔍 DIAGNÓSTICO ESTADO [${where}]`);
+  console.table({
+    'Notif Permission': notifPerm,
+    'FCM Token': fcm,
+    'LS State': lsState,
+    'SW Ready': swReady,
+    'Geo Permission': geo,
+    'Timestamp': new Date().toISOString()
+  });
+  console.groupEnd();
 };
 
 // ──────────────────────────────────────────────────────────────

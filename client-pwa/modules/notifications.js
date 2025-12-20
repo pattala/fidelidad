@@ -12,7 +12,13 @@ function show(el, on) { if (el) el.style.display = on ? 'block' : 'none'; }
 function showInline(el, on) { if (el) el.style.display = on ? 'inline-block' : 'none'; }
 function emit(name, detail) { try { document.dispatchEvent(new CustomEvent(name, { detail })); } catch (e) { } }
 function toast(msg, type = 'info') { try { window.UI && window.UI.showToast && window.UI.showToast(msg, type); } catch (e) { } }
+function toast(msg, type = 'info') { try { window.UI && window.UI.showToast && window.UI.showToast(msg, type); } catch (e) { } }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// 🔍 DEBUG HELPER
+function debugLog(ctx, msg, data = '') {
+  console.log(`%c[Notif:${ctx}]`, 'color:#ad005f;font-weight:bold;', msg, data);
+}
 
 /* ────────────────────────────────────────────────────────────
    ESTADO LOCAL / CONSTANTES
@@ -233,12 +239,16 @@ function showNotifOffBanner(on) {
   if (!el) return;
 
   if (!on) {
+    debugLog('Banner', 'OCULTANDO banner mini (request OFF)');
     el.style.display = 'none';
     return;
   }
 
   // Respetar silencio y frecuencia (cada 4 días)
-  if (!canShowMiniNotifBannerNow()) {
+  const canShow = canShowMiniNotifBannerNow();
+  debugLog('Banner', 'Solicitud MOSTRAR banner mini. Can show?', canShow);
+
+  if (!canShow) {
     el.style.display = 'none';
     return;
   }
@@ -406,7 +416,12 @@ async function borrarTokenYOptOut() {
     await setClienteConfigPatch({ notifEnabled: false, notifUpdatedAt: new Date().toISOString() });
     emit('rampet:consent:notif-opt-out', { source: 'ui' });
     showNotifOffBanner(true);
+    showNotifOffBanner(true);
   } catch (e) { console.warn('[FCM] borrarTokenYOptOut error:', e && e.message || e); }
+}
+
+function debugGeo(msg, data) {
+  console.log(`%c[GEO] ${msg}`, 'color:#008000;font-weight:bold;', data || '');
 }
 
 /* Retries IndexedDB/SW */
@@ -518,8 +533,12 @@ async function obtenerYGuardarToken() {
     if (!tok) { toast('No se pudo activar notificaciones (token vacío).', 'warning'); throw new Error('token vacío'); }
     await guardarTokenEnMiDoc(tok);
     toast('Notificaciones activadas ✅', 'success');
+    debugLog('Token', 'Token obtenido y guardado exitosamente.');
     try { refreshNotifUIFromPermission(); } catch (e) { }
     return tok;
+  } catch (e) {
+    debugLog('Token', 'ERROR obteniendo token:', e);
+    throw e;
   } finally { __tokenProvisionPending = false; }
 }
 
@@ -557,6 +576,8 @@ function refreshNotifUIFromPermission() {
   try { lsState = localStorage.getItem(LS_NOTIF_STATE) || null; } catch (e) { }
   const hasToken = isNotifEnabledLocally();
   const pending = __tokenProvisionPending || !!__tokenReqLock || __notifReqInFlight;
+
+  debugLog('UI', 'refreshNotifUI state:', { perm, lsState, hasToken, pending });
 
   // 1) Bloqueo REAL del navegador → mensaje técnico “candado…”
   if (perm === 'denied') {
@@ -609,8 +630,20 @@ function refreshNotifUIFromPermission() {
   // 5) granted
   if (perm === 'granted') {
     if (switchEl) switchEl.checked = !!hasToken || __tokenProvisionPending;
-    if (!hasToken && !pending) show(cardSwitch, true);
-    showNotifOffBanner(!hasToken && !__tokenProvisionPending);
+    if (hasToken) {
+      debugLog('UI', 'Permiso granted + Token OK. Ocultando banners.');
+      show(cardMarketing, false);
+      show(cardSwitch, true); // switch ON visible
+      showNotifOffBanner(false);
+    } else {
+      if (!pending) {
+        debugLog('UI', 'Permiso granted PERO sin token. Mostrando switch/banner.');
+        show(cardSwitch, true);
+        showNotifOffBanner(true); // Avisar que falta activar "en la app"
+      } else {
+        debugLog('UI', 'Permiso granted, provisionando token...');
+      }
+    }
     return;
   }
 
@@ -1239,7 +1272,11 @@ async function writeGeoSamples(lat, lng) {
     await db.collection('clientes').doc(clienteId).collection('geo_raw').doc().set({ lat, lng, capturedAt: now, source: 'pwa' }, { merge: false });
     await db.collection('public_geo').doc(uid).collection('samples').doc().set({ lat3: round3(lat), lng3: round3(lng), capturedAt: now, rounded: true, source: 'pwa' }, { merge: false });
     incDailyCount();
-  } catch (e) { console.warn('[geo] writeGeoSamples error', (e && e.message) || e); }
+    debugGeo('Muestra guardada', { lat, lng });
+  } catch (e) {
+    console.warn('[geo] writeGeoSamples error', (e && e.message) || e);
+    debugGeo('Error guardando muestra', e);
+  }
 }
 function shouldRecord(lat, lng) {
   const nowT = Date.now();
@@ -1255,10 +1292,11 @@ function onGeoPosSuccess(pos) {
     if (lat == null || lng == null) return;
     if (!shouldRecord(lat, lng)) return;
     lastSample = { t: Date.now(), lat, lng };
+    debugGeo('Posición recibida', { lat, lng });
     writeGeoSamples(lat, lng);
   } catch (e) { console.warn('[geo] onGeoPosSuccess error', (e && e.message) || e); }
 }
-function onGeoPosError(_) { }
+function onGeoPosError(err) { debugGeo('Error de posición', err); }
 function startGeoWatch() {
   if (!navigator.geolocation || geoWatchId != null) return;
   if (isGeoBlockedLocally()) return;
@@ -1268,9 +1306,17 @@ function startGeoWatch() {
       onGeoPosSuccess, onGeoPosError,
       { enableHighAccuracy: false, maximumAge: 60000, timeout: 10000 }
     );
-  } catch (e) { console.warn('[geo] start watch error', (e && e.message) || e); }
+    debugGeo('Watch iniciado', { id: geoWatchId });
+  } catch (e) {
+    console.warn('[geo] start watch error', (e && e.message) || e);
+    debugGeo('Error iniciando watch', e);
+  }
 }
-function stopGeoWatch() { try { if (geoWatchId != null) navigator.geolocation.clearWatch(geoWatchId); } catch (e) { } geoWatchId = null; }
+function stopGeoWatch() {
+  try { if (geoWatchId != null) navigator.geolocation.clearWatch(geoWatchId); } catch (e) { }
+  if (geoWatchId) debugGeo('Watch detenido');
+  geoWatchId = null;
+}
 async function ensureGeoWatchIfPermitted() {
   try {
     if (document.visibilityState !== 'visible' || isGeoBlockedLocally()) { stopGeoWatch(); return; }
