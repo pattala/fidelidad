@@ -619,9 +619,41 @@ function refreshNotifUIFromPermission() {
   }
 
   // 4) “deferred” (Luego) → mostrar switch OFF, marketing oculto
+  // PERO: Si el permiso es 'default', priorizamos mostrar el Marketing Banner al menos una vez
+  // salvo que esté en cooldown o explícitamente deferred en esta sesión.
   if (lsState === 'deferred') {
     if (switchEl) switchEl.checked = false;
+    // FIX: Si permission es default, permitimos ver el switch, pero el banner se oculta por 'deferred'
     if (!pending) show(cardSwitch, true);
+    showNotifOffBanner(false);
+
+    // Si es default, chequeamos si podemos mostrar el banner igual (por si el usuario lo cerró hace mucho)
+    if (perm === 'default') {
+      const now = Date.now();
+      let suppressUntil = 0;
+      try { suppressUntil = +localStorage.getItem(LS_NOTIF_SUPPRESS_UNTIL) || 0; } catch (e) { }
+      if (suppressUntil <= now) {
+        debugLog('UI', 'Estado deferred pero caducó cooldown. Mostrando banner.');
+        show(cardMarketing, true);
+        return;
+      }
+    }
+    return;
+  }
+
+  // 5) CASO DEFAULT (Sin permiso aún)
+  if (perm === 'default') {
+    const now = Date.now();
+    let suppressUntil = 0;
+    try { suppressUntil = +localStorage.getItem(LS_NOTIF_SUPPRESS_UNTIL) || 0; } catch (e) { }
+
+    if (suppressUntil > now) {
+      debugLog('UI', 'Permiso default, pero en COOLDOWN. Ocultando banner.');
+      show(cardMarketing, false);
+    } else {
+      debugLog('UI', 'Permiso default y sin cooldown. Mostrando banner Marketing.');
+      show(cardMarketing, true);
+    }
     showNotifOffBanner(false);
     return;
   }
