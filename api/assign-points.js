@@ -85,6 +85,10 @@ export default async function handler(req, res) {
                 const cfgSnap = await db.collection('config').doc('gamification').get();
                 const cfg = cfgSnap.exists ? cfgSnap.data() : {};
                 points = Number(cfg.pointsForAddress) || 50; // Default 50
+            } else if (reason === 'welcome_signup') {
+                const cfgSnap = await db.collection('config').doc('gamification').get();
+                const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+                points = Number(cfg.pointsForSignup) || 50;
             } else {
                 return res.status(400).json({ ok: false, error: "Unknown reason or missing amount" });
             }
@@ -103,21 +107,8 @@ export default async function handler(req, res) {
             const doc = qs.docs[0];
             const data = doc.data();
 
-            // Chequeo de duplicados (solo para reasons conocidos)
-            if (reason === 'profile_address') {
-                // Buscamos si ya tiene este premio en el historial reciente
-                // Nota: Idealmente history es una subcollection, pero si es array en doc:
-                const history = data.history || [];
-                const alreadyAwarded = history.some(h => h.reason === reason);
-                // O mejor, una flag en el root para query rápida
-                // if (data.rewards?.[reason]) ...
-
-                // Por simplicidad y performance, consultamos subcollection 'puntos_history' o el array si es pequeño.
-                // Vamos a asumir historial en array por ahora (según app.js anterior).
-                // Si app.js usa otra cosa, ajustar. (app.js usa .collection('historial') o array?)
-                // Revisando app.js: usa .collection('inbox') pero puntos parece ser solo campo.
-
-                // Vamos a usar una flag en el cliente para idempotencia fuerte: `rewards_awarded: { profile_address: true }`
+            // Chequeo de duplicados (Generic)
+            if (reason) {
                 if (data.rewards_awarded && data.rewards_awarded[reason]) {
                     throw new Error("ALREADY_AWARDED");
                 }
