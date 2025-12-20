@@ -1482,8 +1482,64 @@ function buildAddressLine(c) {
   return parts.filter(Boolean).join(', ');
 }
 
+// ─────────────────────────────────────────────
+// LÓGICA DE VISUALIZACIÓN DE BANNER (Mission)
+// ─────────────────────────────────────────────
+function shouldShowMissionBanner(hasAddress) {
+  if (hasAddress) return false;
+  if (!window.APP_CONFIG?.features?.address) return false;
+
+  // 1. Check "Nunca/Dismiss" (LS)
+  if (localStorage.getItem(LS_ADDR_DISMISS) === '1') return false;
+
+  // 2. Check "Más tarde/Defer" (SS) -- Cooldown temporal de sesión
+  if (sessionStorage.getItem(SS_ADDR_DEFER) === '1') return false;
+
+  return true;
+}
+
+function wireMissionButtons() {
+  const completeBtn = $('mission-address-btn');
+  const laterBtn = $('mission-address-later');
+  const neverBtn = $('mission-address-never');
+  const card = $('mission-address-card');
+  const formCard = $('address-card');
+
+  if (completeBtn && !completeBtn._wired) {
+    completeBtn._wired = true;
+    completeBtn.addEventListener('click', () => {
+      if (formCard) formCard.style.display = 'block';
+      if (card) card.style.display = 'none'; // Ocultamos banner mientras llena form
+    });
+  }
+
+  if (laterBtn && !laterBtn._wired) {
+    laterBtn._wired = true;
+    laterBtn.addEventListener('click', () => {
+      try { sessionStorage.setItem(SS_ADDR_DEFER, '1'); } catch (e) { }
+      if (card) card.style.display = 'none';
+      toast('Te lo recordaremos más tarde.', 'info');
+    });
+  }
+
+  if (neverBtn && !neverBtn._wired) {
+    neverBtn._wired = true;
+    neverBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      try { localStorage.setItem(LS_ADDR_DISMISS, '1'); } catch (e) { }
+      if (card) card.style.display = 'none';
+      toast('No te volveremos a molestar con esto.', 'info');
+    });
+  }
+}
+
 export async function initDomicilioForm() {
   const card = $('address-card');
+  const missionBanner = $('mission-address-card');
+
+  // Wire botones del banner amarillo
+  wireMissionButtons();
+
   if (!card || card._wired) return;
   card._wired = true;
 
@@ -1523,32 +1579,40 @@ export async function initDomicilioForm() {
         const dom = snap.data()?.domicilio?.components;
         if (dom) {
           hadServerAddress = true;
+          // Precargar campos
+          if (q('#dom-calle')) q('#dom-calle').value = dom.calle || '';
+          if (q('#dom-numero')) q('#dom-numero').value = dom.numero || '';
+          if (q('#dom-piso')) q('#dom-piso').value = dom.piso || '';
+          if (q('#dom-depto')) q('#dom-depto').value = dom.depto || '';
+          if (q('#dom-partido')) q('#dom-partido').value = dom.partido || '';
+          if (q('#dom-localidad')) q('#dom-localidad').value = dom.localidad || (dom.barrio || '');
+          if (q('#dom-cp')) q('#dom-cp').value = dom.codigoPostal || '';
+          if (q('#dom-provincia')) q('#dom-provincia').value = dom.provincia || '';
+          if (q('#dom-pais')) q('#dom-pais').value = dom.pais || 'Argentina';
+          if (q('#dom-referencia')) q('#dom-referencia').value = dom.referencia || '';
 
-          g('dom-calle').value = dom.calle || '';
-          g('dom-numero').value = dom.numero || '';
-          g('dom-piso').value = dom.piso || '';
-          g('dom-depto').value = dom.depto || '';
-          g('dom-localidad').value = dom.localidad || '';
-          g('dom-partido').value = dom.partido || '';
-          g('dom-provincia').value = dom.provincia || '';
-          g('dom-cp').value = dom.codigoPostal || '';
-          g('dom-pais').value = dom.pais || 'Argentina';
-          g('dom-referencia').value = dom.referencia || '';
-
-          // Refrescar datalists según provincia/partido precargados
-          try {
-            const provEl = g('dom-provincia');
-            if (provEl) {
-              provEl.dispatchEvent(new Event('change', { bubbles: true }));
-            }
-            const provVal = dom.provincia || '';
-            const partEl = g('dom-partido');
-            if (/^Buenos Aires$/i.test(provVal) && partEl && partEl.value) {
-              partEl.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-          } catch (e2) {
-            console.warn('[ADDR] no se pudo refrescar datalists dom-:', e2);
+          // Si ya tiene, ocultar el banner amarillo
+          if (missionBanner) missionBanner.style.display = 'none';
+        } else {
+          // No tiene domicilio -> Mostrar banner amarillo SI corresponde
+          if (shouldShowMissionBanner(false) && missionBanner) {
+            missionBanner.style.display = 'block';
           }
+        }
+
+        // Refrescar datalists según provincia/partido precargados
+        try {
+          const provEl = g('dom-provincia');
+          if (provEl) {
+            provEl.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          const provVal = dom.provincia || '';
+          const partEl = g('dom-partido');
+          if (/^Buenos Aires$/i.test(provVal) && partEl && partEl.value) {
+            partEl.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        } catch (e2) {
+          console.warn('[ADDR] no se pudo refrescar datalists dom-:', e2);
         }
       }
     }
@@ -1597,6 +1661,11 @@ export async function initDomicilioForm() {
           };
         }
 
+        if (!components.calle || !components.numero || !components.provincia || (!components.localidad && !components.partido)) {
+          toast('Por favor completa: Calle, Número, Provincia y Localidad.', 'warning');
+          return;
+        }
+
         const addressLine = buildAddressLine(components);
 
         await firebase.firestore()
@@ -1622,8 +1691,9 @@ export async function initDomicilioForm() {
 
         toast('Domicilio guardado. ¡Gracias!', 'success');
 
-        // Cierro form y banner definitivamente
+        // Cierro forms y banners
         try { card.style.display = 'none'; } catch (e2) { }
+        try { $('mission-address-card').style.display = 'none'; } catch (e3) { }
         try { $('address-banner').style.display = 'none'; } catch (e3) { }
 
         // Actualizo UI relacionada (GEO, perfil)
