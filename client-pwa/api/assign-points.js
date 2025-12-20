@@ -81,10 +81,13 @@ export default async function handler(req, res) {
         } else {
             // Modo Reglas de Negocio (Usuario o Admin sin override)
             if (reason === 'profile_address') {
-                // Leer config de Firestore
                 const cfgSnap = await db.collection('config').doc('gamification').get();
                 const cfg = cfgSnap.exists ? cfgSnap.data() : {};
-                points = Number(cfg.pointsForAddress) || 50; // Default 50
+                points = Number(cfg.pointsForAddress) || 50;
+            } else if (reason === 'welcome_signup') {
+                const cfgSnap = await db.collection('config').doc('gamification').get();
+                const cfg = cfgSnap.exists ? cfgSnap.data() : {};
+                points = Number(cfg.pointsForSignup) || 50;
             } else {
                 return res.status(400).json({ ok: false, error: "Unknown reason or missing amount" });
             }
