@@ -31,9 +31,27 @@ const LS_NOTIF_MINI_LAST_SHOWN_AT = 'notifMiniLastShownAt';   // timestamp últi
 const LS_NOTIF_MINI_SILENCE_UNTIL = 'notifMiniSilenceUntil';  // silencio (10 días, o más)
 const LS_NOTIF_MINI_NOQUIERO_COUNT = 'notifMiniNoQuieroCount'; // contador de "No quiero"
 
-const NOTIF_MINI_INTERVAL_DAYS = 4;   // cada cuántos días se puede mostrar
+const NOTIF_MINI_INTERVAL_DAYS = (window.APP_CONFIG && window.APP_CONFIG.features && window.APP_CONFIG.features.notifSilenceDays != null)
+  ? window.APP_CONFIG.features.notifSilenceDays : 4;
 const NOTIF_MINI_SILENCE_DAYS = (window.APP_CONFIG && window.APP_CONFIG.features && window.APP_CONFIG.features.notifSilenceDays != null)
   ? window.APP_CONFIG.features.notifSilenceDays : 10;
+
+// 2) "Recordármelo más adelante" -> Cooldown configurable
+const laterBtn = $('btn-later-notifs');
+if (laterBtn && !laterBtn._wired) {
+  laterBtn._wired = true;
+  laterBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    debugLog('UI', `Usuario eligió "Más adelante" -> Cooldown ${NOTIF_MINI_INTERVAL_DAYS} días.`);
+    try {
+      const ms = NOTIF_MINI_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
+      const until = Date.now() + ms;
+      localStorage.setItem(LS_NOTIF_SUPPRESS_UNTIL, until.toString());
+      localStorage.setItem(LS_NOTIF_STATE, 'deferred');
+    } catch (e) { console.warn('Error saving defer state', e); }
+    refreshNotifUIFromPermission();
+  });
+}
 
 // GEO
 const LS_GEO_STATE = 'geoState';   // 'deferred' | 'accepted' | 'blocked' | null
@@ -944,10 +962,11 @@ function wirePushButtonsOnce() {
       e.stopPropagation();
       debugLog('UI', `Usuario eligió "Más adelante" -> Cooldown ${NOTIF_MINI_INTERVAL_DAYS} días.`);
       try {
-        const until = Date.now() + COOLDOWN_DAYS_MS;
+        const ms = NOTIF_MINI_INTERVAL_DAYS * 24 * 60 * 60 * 1000;
+        const until = Date.now() + ms;
         localStorage.setItem(LS_NOTIF_SUPPRESS_UNTIL, until.toString());
         localStorage.setItem(LS_NOTIF_STATE, 'deferred');
-      } catch (e) { }
+      } catch (e) { console.warn('Error deferring notifs', e); }
       refreshNotifUIFromPermission();
     });
   }
