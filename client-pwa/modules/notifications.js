@@ -12,7 +12,6 @@ function show(el, on) { if (el) el.style.display = on ? 'block' : 'none'; }
 function showInline(el, on) { if (el) el.style.display = on ? 'inline-block' : 'none'; }
 function emit(name, detail) { try { document.dispatchEvent(new CustomEvent(name, { detail })); } catch (e) { } }
 function toast(msg, type = 'info') { try { window.UI && window.UI.showToast && window.UI.showToast(msg, type); } catch (e) { } }
-function toast(msg, type = 'info') { try { window.UI && window.UI.showToast && window.UI.showToast(msg, type); } catch (e) { } }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // 🔍 DEBUG HELPER
