@@ -864,6 +864,7 @@ async function hookOnMessage() {
     await ensureMessagingCompatLoaded();
     const messaging = firebase.messaging();
     messaging.onMessage(async (payload) => {
+      debugLog('Msg(FG)', 'Mensaje recibido en primer plano:', payload);
       const d = (payload && payload.data) || {};
       try {
         const reg = await navigator.serviceWorker.getRegistration(SW_PATH) || await navigator.serviceWorker.getRegistration();
