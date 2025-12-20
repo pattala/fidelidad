@@ -887,11 +887,46 @@ async function hookOnMessage() {
 }
 
 /* Cableado de botones del HTML (notifs) */
+/* Cableado de botones del HTML (notifs) */
 function wirePushButtonsOnce() {
-  const allow = $('btn-activar-notif-prompt'); if (allow && !allow._wired) { allow._wired = true; allow.addEventListener('click', () => { handlePermissionRequest(); }); }
-  const later = $('btn-rechazar-notif-prompt'); if (later && !later._wired) { later._wired = true; later.addEventListener('click', () => { dismissPermissionRequest(); }); }
-  const block = $('btn-bloquear-notif-prompt'); if (block && !block._wired) { block._wired = true; block.addEventListener('click', () => { handlePermissionBlockClick(); }); }
-  const sw = $('notif-switch'); if (sw && !sw._wired) { sw._wired = true; sw.addEventListener('change', handlePermissionSwitch); }
+  const allow = $('btn-enable-notifs'); // ID Nuevo
+  if (allow && !allow._wired) { allow._wired = true; allow.addEventListener('click', () => { handlePermissionRequest(); }); }
+
+  // Fallback antiguo (si existiera)
+  const oldAllow = $('btn-activar-notif-prompt');
+  if (oldAllow && !oldAllow._wired) { oldAllow._wired = true; oldAllow.addEventListener('click', () => handlePermissionRequest()); }
+
+  // 2) "Recordármelo más adelante" -> 5 días
+  const laterBtn = $('btn-later-notifs');
+  if (laterBtn && !laterBtn._wired) {
+    laterBtn._wired = true;
+    laterBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      debugLog('UI', 'Usuario eligió "Más adelante" -> Cooldown 5 días.');
+      try {
+        const until = Date.now() + COOLDOWN_DAYS_MS;
+        localStorage.setItem(LS_NOTIF_SUPPRESS_UNTIL, until.toString());
+        localStorage.setItem(LS_NOTIF_STATE, 'deferred');
+      } catch (e) { }
+      refreshNotifUIFromPermission();
+    });
+  }
+
+  // 3) "No me interesa" -> Bloqueo
+  const blockBtn = $('btn-block-notifs');
+  if (blockBtn && !blockBtn._wired) {
+    blockBtn._wired = true;
+    blockBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      debugLog('UI', 'Usuario eligió "No me interesa" -> Bloqueo permanente.');
+      try {
+        localStorage.setItem(LS_NOTIF_STATE, 'blocked');
+        borrarTokenYOptOut().catch(() => { });
+      } catch (e) { }
+      refreshNotifUIFromPermission();
+    });
+  }
 }
 
 /* Sincronía con Perfil — NOTIFS */
