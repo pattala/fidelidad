@@ -1710,6 +1710,14 @@ export async function initNotificationsOnce() {
 
   await hookOnMessage();
   refreshNotifUIFromPermission();
+
+  // 📡 FIX: Escuchar logs del SW para depuración remota
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'LOG') {
+      console.log(`%c[${event.data.ctx}]`, 'color:#e040fb;font-weight:bold;', event.data.msg, event.data.data || '');
+    }
+  });
+
   wirePushButtonsOnce();
 
   // Perfil (una sola vez)
