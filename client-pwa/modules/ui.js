@@ -32,6 +32,12 @@ export function showScreen(screenId) {
   const target = document.getElementById(screenId);
   if (target) target.classList.add('active');
   else console.error(`[UI ShowScreen] No existe #${screenId}`);
+
+  // Manejo de visibilidad de Campanita (Solo en Main App)
+  const bell = document.getElementById('btn-notifs');
+  if (bell) {
+    bell.style.display = (screenId === 'main-app-screen') ? 'inline-block' : 'none';
+  }
 }
 
 function formatearFecha(iso) {
