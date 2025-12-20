@@ -670,9 +670,16 @@ function refreshNotifUIFromPermission() {
       // 🔄 FIX: Si ya aceptó (server/local) y está 'provisioning', NO mostrar banner de reclamo
       if (lsState === 'accepted' || pending) {
         debugLog('UI', 'Permiso granted + Estado Accepted/Pending. Ocultando banner (recuperando token...).');
-        show(cardMarketing, false); // <--- CLAVE: Ocultar banner de "Activar"
+        show(cardMarketing, false);
         show(cardSwitch, true);
         showNotifOffBanner(false);
+
+        // 🔄 AUTO-RECOVERY: Si no hay token y no hay pending real, forzarlo ahora
+        if (!hasToken && !pending) {
+          debugLog('UI', 'Permiso OK pero Token faltante. Forzando obtenerYGuardarToken().');
+          obtenerYGuardarToken().catch(err => console.warn('[AutoRecover] Falló token:', err));
+        }
+
       } else {
         debugLog('UI', 'Permiso granted PERO sin token ni estado accepted. Mostrando switch/banner.');
         show(cardSwitch, true);
