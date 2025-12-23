@@ -54,9 +54,9 @@ export function renderizarTablaClientes() {
   const clientesActivos = appData.clientes.filter(c => c.numeroSocio);
   const resultados = criterio
     ? clientesActivos.filter(c =>
-        (c.dni?.toLowerCase().includes(criterio)) ||
-        (c.nombre?.toLowerCase().includes(criterio)) ||
-        (c.numeroSocio?.toString().includes(criterio)))
+      (c.dni?.toLowerCase().includes(criterio)) ||
+      (c.nombre?.toLowerCase().includes(criterio)) ||
+      (c.numeroSocio?.toString().includes(criterio)))
     : clientesActivos;
 
   const tbody = document.querySelector('#tabla-clientes tbody');
@@ -131,14 +131,14 @@ export function renderFichaDomicilio(cliente) {
     chips.push('Provincia: CABA');
   } else if (c.provincia === 'Buenos Aires') {
     if (c.localidad) chips.push(`Localidad: ${c.localidad}`);
-    if (c.partido)   chips.push(`Partido: ${c.partido}`);
+    if (c.partido) chips.push(`Partido: ${c.partido}`);
     chips.push('Provincia: Buenos Aires');
   } else {
     if (c.localidad) chips.push(`Localidad: ${c.localidad}`);
     if (c.provincia) chips.push(`Provincia: ${c.provincia}`);
   }
   if (c.codigoPostal) chips.push(`CP: ${c.codigoPostal}`);
-  if (c.pais)         chips.push(`País: ${c.pais}`);
+  if (c.pais) chips.push(`País: ${c.pais}`);
 
   // contenedor fijo si existe; si no, lo creo al final
   let wrap = document.getElementById('ficha-domicilio');
@@ -184,15 +184,15 @@ export function renderizarFichaCliente(cliente) {
   document.getElementById('ficha-telefono').textContent = cliente.telefono || '-';
   document.getElementById('ficha-terminos-status').textContent = cliente.terminosAceptados ? 'Sí' : 'No';
   document.getElementById('ficha-notif-status').textContent = (cliente.fcmTokens && cliente.fcmTokens.length > 0) ? `Activadas ✔️` : 'Desactivadas ❌';
-   // Geolocalización (solo lectura)
+  // Geolocalización (solo lectura)
   (function setGeoConsentInFicha() {
-    const elStatus  = document.getElementById('ficha-geo-status');
+    const elStatus = document.getElementById('ficha-geo-status');
     const elUpdated = document.getElementById('ficha-geo-updated');
     if (!elStatus) return; // si no existe en el DOM, salimos
 
-    const geoEnabled   = cliente?.config?.geoEnabled;
+    const geoEnabled = cliente?.config?.geoEnabled;
     const geoUpdatedAt = cliente?.config?.geoUpdatedAt || '';
-    const geoMethod    = cliente?.config?.geoMethod || '';
+    const geoMethod = cliente?.config?.geoMethod || '';
 
     // Estado principal
     if (geoEnabled === true) elStatus.textContent = 'Activada ✔️';
@@ -206,16 +206,16 @@ export function renderizarFichaCliente(cliente) {
           if (!iso) return '—';
           const d = new Date(iso);
           if (isNaN(d)) return '—';
-          const dd = String(d.getDate()).padStart(2,'0');
-          const mm = String(d.getMonth()+1).padStart(2,'0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
           const yy = d.getFullYear();
-          const hh = String(d.getHours()).padStart(2,'0');
-          const mi = String(d.getMinutes()).padStart(2,'0');
+          const hh = String(d.getHours()).padStart(2, '0');
+          const mi = String(d.getMinutes()).padStart(2, '0');
           return `${dd}/${mm}/${yy} ${hh}:${mi}`;
         } catch { return '—'; }
       };
       const when = fmt(geoUpdatedAt);
-      const how  = geoMethod ? ` · origen: ${geoMethod}` : '';
+      const how = geoMethod ? ` · origen: ${geoMethod}` : '';
       elUpdated.textContent = when !== '—' ? `(${when}${how})` : '';
     }
   })();
@@ -233,85 +233,85 @@ export function renderizarFichaCliente(cliente) {
   document.getElementById('ficha-ultima-compra').textContent = formatearFecha(cliente.ultimaCompra);
 
   // Tarjeta de Domicilio (read-only)
-renderFichaDomicilio(cliente);
-// ——— Domicilio EDIT ———
-const btnEdit = document.getElementById('btn-edit-domicilio');
-const editWrap = document.getElementById('ficha-domicilio-edit');
-const cardRead = document.getElementById('ficha-domicilio');
+  renderFichaDomicilio(cliente);
+  // ——— Domicilio EDIT ———
+  const btnEdit = document.getElementById('btn-edit-domicilio');
+  const editWrap = document.getElementById('ficha-domicilio-edit');
+  const cardRead = document.getElementById('ficha-domicilio');
 
-if (btnEdit && editWrap) {
-  btnEdit.onclick = () => {
-    // Pre-cargar valores desde cliente.domicilio.components
-    const d = (cliente.domicilio || {});
-    const c = d.components || {};
-    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v || ''); };
+  if (btnEdit && editWrap) {
+    btnEdit.onclick = () => {
+      // Pre-cargar valores desde cliente.domicilio.components
+      const d = (cliente.domicilio || {});
+      const c = d.components || {};
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v || ''); };
 
-    set('edit-calle', c.calle);
-    set('edit-numero', c.numero);
-    set('edit-piso', c.piso);
-    set('edit-depto', c.depto);
-    set('edit-provincia', c.provincia || '');
-    set('edit-partido', c.partido || '');
-    set('edit-cp', c.codigoPostal);
-    set('edit-pais', c.pais || 'AR');
-    set('edit-referencia', c.referencia);
+      set('edit-calle', c.calle);
+      set('edit-numero', c.numero);
+      set('edit-piso', c.piso);
+      set('edit-depto', c.depto);
+      set('edit-provincia', c.provincia || '');
+      set('edit-partido', c.partido || '');
+      set('edit-cp', c.codigoPostal);
+      set('edit-pais', c.pais || 'AR');
+      set('edit-referencia', c.referencia);
 
-    // Inicializar lógica dependiente (provincia/partido/localidad)
-    Clientes.initDomicilioFormWithPrefix('edit-');
+      // Inicializar lógica dependiente (provincia/partido/localidad)
+      Clientes.initDomicilioFormWithPrefix('edit-');
 
-    // Forzar estado según los datos actuales:
-    const selProv = document.getElementById('edit-provincia');
-    const selPart = document.getElementById('edit-partido');
-    const selLoc  = document.getElementById('edit-localidad-select');
-    const inpLoc  = document.getElementById('edit-localidad-input');
+      // Forzar estado según los datos actuales:
+      const selProv = document.getElementById('edit-provincia');
+      const selPart = document.getElementById('edit-partido');
+      const selLoc = document.getElementById('edit-localidad-select');
+      const inpLoc = document.getElementById('edit-localidad-input');
 
-    if (c.provincia === 'CABA') {
-      // set barrio como selección si existe
-      if (c.barrio && selLoc) { selLoc.value = c.barrio; }
-    } else if (c.provincia === 'Buenos Aires') {
-      // completar partido y luego localidades
-      if (selPart) {
-        selPart.value = c.partido || '';
-        selPart.dispatchEvent(new Event('change'));
+      if (c.provincia === 'CABA') {
+        // set barrio como selección si existe
+        if (c.barrio && selLoc) { selLoc.value = c.barrio; }
+      } else if (c.provincia === 'Buenos Aires') {
+        // completar partido y luego localidades
+        if (selPart) {
+          selPart.value = c.partido || '';
+          selPart.dispatchEvent(new Event('change'));
+        }
+        // set localidad si aplica
+        if (c.localidad && selLoc && selLoc.style.display !== 'none') {
+          selLoc.value = c.localidad;
+        } else if (inpLoc && inpLoc.style.display !== 'none') {
+          inpLoc.value = c.localidad || '';
+        }
+      } else {
+        // Otro: input libre
+        if (inpLoc) inpLoc.value = c.localidad || '';
       }
-      // set localidad si aplica
-      if (c.localidad && selLoc && selLoc.style.display !== 'none') {
-        selLoc.value = c.localidad;
-      } else if (inpLoc && inpLoc.style.display !== 'none') {
-        inpLoc.value = c.localidad || '';
+
+      // Preview
+      const prev = document.getElementById('preview-addressLine-edit');
+      if (prev) {
+        const dom = (typeof Clientes._computeDomicilioFromFormWithPrefix === 'function')
+          ? Clientes['_computeDomicilioFromFormWithPrefix']('edit-') // por si no exportás; solo recalcula preview
+          : { addressLine: d.addressLine || '—' };
+        prev.textContent = dom.addressLine || d.addressLine || '—';
       }
-    } else {
-      // Otro: input libre
-      if (inpLoc) inpLoc.value = c.localidad || '';
-    }
 
-    // Preview
-    const prev = document.getElementById('preview-addressLine-edit');
-    if (prev) {
-      const dom = (typeof Clientes._computeDomicilioFromFormWithPrefix === 'function')
-        ? Clientes['_computeDomicilioFromFormWithPrefix']('edit-') // por si no exportás; solo recalcula preview
-        : { addressLine: d.addressLine || '—' };
-      prev.textContent = dom.addressLine || d.addressLine || '—';
-    }
+      // Mostrar editor, ocultar read-only
+      if (cardRead) cardRead.style.display = 'none';
+      editWrap.style.display = 'block';
+    };
+  }
 
-    // Mostrar editor, ocultar read-only
-    if (cardRead) cardRead.style.display = 'none';
-    editWrap.style.display = 'block';
-  };
-}
+  document.getElementById('btn-edit-domicilio-cancelar')?.addEventListener('click', () => {
+    // Ocultar editor y volver a read-only
+    const editWrap2 = document.getElementById('ficha-domicilio-edit');
+    if (editWrap2) editWrap2.style.display = 'none';
+    const cardRead2 = document.getElementById('ficha-domicilio');
+    if (cardRead2) cardRead2.style.display = '';
+  });
 
-document.getElementById('btn-edit-domicilio-cancelar')?.addEventListener('click', () => {
-  // Ocultar editor y volver a read-only
-  const editWrap2 = document.getElementById('ficha-domicilio-edit');
-  if (editWrap2) editWrap2.style.display = 'none';
-  const cardRead2 = document.getElementById('ficha-domicilio');
-  if (cardRead2) cardRead2.style.display = '';
-});
-
-document.getElementById('btn-edit-domicilio-guardar')?.addEventListener('click', async () => {
-  await Clientes.guardarCambiosDomicilioHandler(document.getElementById('ficha-id').textContent);
-  // el re-render de la ficha se hace en guardarCambiosDomicilioHandler
-});
+  document.getElementById('btn-edit-domicilio-guardar')?.addEventListener('click', async () => {
+    await Clientes.guardarCambiosDomicilioHandler(document.getElementById('ficha-id').textContent);
+    // el re-render de la ficha se hace en guardarCambiosDomicilioHandler
+  });
 
   renderizarTablaHistorial(cliente, 'puntos');
   renderizarTablaHistorial(cliente, 'canjes');
@@ -333,9 +333,20 @@ function renderizarTablaHistorial(cliente, tipo) {
   switch (tipo) {
     case 'puntos':
       tbody = document.querySelector('#ficha-tabla-historial-puntos tbody');
-      historial = (cliente.historialPuntos || []).sort((a, b) => new Date(b.fechaObtencion) - new Date(a.fechaObtencion));
+      // Helper para sort
+      const _getDate = d => (d && d.toDate ? d.toDate() : new Date(d));
+      historial = (cliente.historialPuntos || []).sort((a, b) => _getDate(b.fechaObtencion) - _getDate(a.fechaObtencion));
       htmlGenerator = (item) => {
-        const fechaObtencion = new Date(item.fechaObtencion.split('T')[0] + 'T00:00:00Z');
+        const _safe = (d) => {
+          if (!d) return null;
+          if (d.toDate) return d.toDate();
+          if (typeof d === 'string') return new Date(d);
+          return d; // Date o number
+        };
+
+        const fechaObtencion = _safe(item.fechaObtencion);
+        if (!fechaObtencion || isNaN(fechaObtencion)) return '<tr><td colspan=4>Error Fecha</td></tr>';
+
         const fechaCaducidad = new Date(fechaObtencion);
         fechaCaducidad.setUTCDate(fechaCaducidad.getUTCDate() + (item.diasCaducidad || 90));
 
@@ -425,8 +436,8 @@ export function cancelarEdicionPuntos() {
 export function limpiarFormularioRegistro() {
   // Campos generales
   [
-    'nuevo-dni','nuevo-nombre','nuevo-email','nuevo-telefono',
-    'nuevo-fecha-nacimiento','nuevo-fecha-inscripcion'
+    'nuevo-dni', 'nuevo-nombre', 'nuevo-email', 'nuevo-telefono',
+    'nuevo-fecha-nacimiento', 'nuevo-fecha-inscripcion'
   ].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -436,10 +447,10 @@ export function limpiarFormularioRegistro() {
 
   // Domicilio (IDs ACTUALES)
   [
-    'nuevo-calle','nuevo-numero','nuevo-piso','nuevo-depto',
-    'nuevo-provincia','nuevo-partido',
-    'nuevo-localidad-select','nuevo-localidad-input',
-    'nuevo-cp','nuevo-pais','nuevo-referencia'
+    'nuevo-calle', 'nuevo-numero', 'nuevo-piso', 'nuevo-depto',
+    'nuevo-provincia', 'nuevo-partido',
+    'nuevo-localidad-select', 'nuevo-localidad-input',
+    'nuevo-cp', 'nuevo-pais', 'nuevo-referencia'
   ].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -521,9 +532,9 @@ export function cerrarModalCumpleanos() {
 
 // ===================== FIX DEFENSIVO + NUEVOS CAMPOS =====================
 export function renderizarConfiguracion(cfg = {}) {
-  const setValue   = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+  const setValue = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
   const setChecked = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
-  const setSelect  = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val ?? el.value ?? ''); };
+  const setSelect = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val ?? el.value ?? ''); };
 
   // Campos “clásicos”
   setValue('tasa-conversion', cfg.tasaConversion ?? 100);
@@ -533,8 +544,8 @@ export function renderizarConfiguracion(cfg = {}) {
 
   // Beneficio por pago en efectivo (nuevo esquema)
   setChecked('cfg-efectivo-activo', !!cfg.pago_efectivo_activo);
-  setSelect('cfg-efectivo-modo',  cfg.pago_efectivo_modo ?? 'add');     // 'add' | 'mul'
-  setValue('cfg-efectivo-valor',  cfg.pago_efectivo_valor ?? 10);        // número (puntos o factor)
+  setSelect('cfg-efectivo-modo', cfg.pago_efectivo_modo ?? 'add');     // 'add' | 'mul'
+  setValue('cfg-efectivo-valor', cfg.pago_efectivo_valor ?? 10);        // número (puntos o factor)
   setSelect('cfg-efectivo-scope', cfg.pago_efectivo_scope ?? 'post_bono');
 
   // Reglas de caducidad (si hay contenedor y función)
@@ -700,8 +711,8 @@ export function renderizarTablaCampanas() {
 
     const vigenciaStr = !campana.fechaInicio ? 'Indefinida'
       : (campana.fechaFin === '2100-01-01' || !campana.fechaFin
-          ? `${formatearFecha(campana.fechaInicio)} en adelante`
-          : `${formatearFecha(campana.fechaInicio)} a ${formatearFecha(campana.fechaFin)}`);
+        ? `${formatearFecha(campana.fechaInicio)} en adelante`
+        : `${formatearFecha(campana.fechaInicio)} a ${formatearFecha(campana.fechaFin)}`);
 
     return `
       <tr data-id="${campana.id}" style="cursor: pointer;">
@@ -726,8 +737,8 @@ export function habilitarFormularioCampana(habilitar) {
   if (form) {
     Array.from(form.elements).forEach(el => {
       if (el.id !== 'guardar-campana-editada-btn' &&
-          el.id !== 'cancelar-edicion-campana-btn' &&
-          el.id !== 'crear-campana-btn') {
+        el.id !== 'cancelar-edicion-campana-btn' &&
+        el.id !== 'crear-campana-btn') {
         el.disabled = !habilitar;
       }
     });
@@ -754,12 +765,12 @@ export function seleccionarFilaTabla(idTbody, idFila) {
 // ====================== AUTOCOMPLETE (core) ======================
 let _acIndex = [];
 
-function _norm(s='') {
-  return (s+'')
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+function _norm(s = '') {
+  return (s + '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().trim();
 }
-function _digits(s='') { return (s+'').replace(/\D+/g,''); }
+function _digits(s = '') { return (s + '').replace(/\D+/g, ''); }
 
 export function buildSearchIndex(clientes = []) {
   _acIndex = (clientes || []).map(c => ({
@@ -794,7 +805,7 @@ function _rankMatches(q) {
     else if (hitContain) contains.push(it);
   }
   // ordenar por puntos desc y nombre asc
-  const order = (a,b) => (b.puntos - a.puntos) || String(a.nombre).localeCompare(b.nombre);
+  const order = (a, b) => (b.puntos - a.puntos) || String(a.nombre).localeCompare(b.nombre);
   return [...startsWith.sort(order), ...contains.sort(order)].slice(0, 10);
 }
 
@@ -813,7 +824,7 @@ function _placeList(listEl, inputEl) {
   const r = inputEl.getBoundingClientRect();
   listEl.style.minWidth = r.width + 'px';
   listEl.style.left = (window.scrollX + r.left) + 'px';
-  listEl.style.top  = (window.scrollY + r.bottom + 4) + 'px';
+  listEl.style.top = (window.scrollY + r.bottom + 4) + 'px';
 }
 
 export function attachAutocomplete(inputId, { onPick, minChars = 2 } = {}) {
@@ -830,14 +841,14 @@ export function attachAutocomplete(inputId, { onPick, minChars = 2 } = {}) {
     if (!q || q.length < minChars) { hide(); return; }
     items = _rankMatches(q);
     if (!items.length) { hide(); return; }
-    listEl.innerHTML = items.map((it,i)=>`
+    listEl.innerHTML = items.map((it, i) => `
       <div class="autocomplete-item" data-i="${i}">
         <div><b>${it.numeroSocio || '—'}</b> · ${it.nombre || 'Sin nombre'}</div>
         <small>DNI: ${it.dni || '—'} · ${it.email || '—'}</small>
       </div>
     `).join('');
-    Array.from(listEl.children).forEach(el=>{
-      el.onclick = () => pick(parseInt(el.dataset.i,10));
+    Array.from(listEl.children).forEach(el => {
+      el.onclick = () => pick(parseInt(el.dataset.i, 10));
     });
     _placeList(listEl, input);
     listEl.style.display = 'block';
@@ -854,12 +865,13 @@ export function attachAutocomplete(inputId, { onPick, minChars = 2 } = {}) {
   const move = (delta) => {
     if (!items.length) return;
     idx = (idx + delta + items.length) % items.length;
-    Array.from(listEl.children).forEach((el,j)=>{
+    Array.from(listEl.children).forEach((el, j) => {
       if (j === idx) el.classList.add('active'); else el.classList.remove('active');
     });
   };
 
-  const onInput = (e) => { clearTimeout(hideT);
+  const onInput = (e) => {
+    clearTimeout(hideT);
     const v = e.target.value.trim();
     show(v);
   };
