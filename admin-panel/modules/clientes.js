@@ -876,6 +876,19 @@ export async function registrarCliente() {
 // ─────────────────────────────────────────────────────────────
 // Utilidades para vencimientos/cumpleaños (usadas por ui.js)
 // ─────────────────────────────────────────────────────────────
+function _safeParseDate(val) {
+  if (!val) return null;
+  if (val.toDate) return val.toDate(); // Firestore Timestamp
+  if (val instanceof Date) return val;
+  if (typeof val === 'string') {
+    // Intenta ISO standard
+    // Si viene solo fecha YYYY-MM-DD
+    if (val.length === 10) return new Date(val + 'T00:00:00Z');
+    return new Date(val);
+  }
+  return null;
+}
+
 export function obtenerDiasCaducidadParaPuntos(puntosObtenidos) {
   const reglas = appData?.config?.reglasCaducidad;
   if (!reglas || reglas.length === 0) return 90;
@@ -896,8 +909,8 @@ export function obtenerFechaProximoVencimiento(cliente) {
 
   cliente.historialPuntos.forEach(grupo => {
     if (grupo.puntosDisponibles > 0 && grupo.estado !== 'Caducado') {
-      const fechaObtencion = new Date((grupo.fechaObtencion || '').split('T')[0] + 'T00:00:00Z');
-      if (isNaN(fechaObtencion)) return;
+      const fechaObtencion = _safeParseDate(grupo.fechaObtencion);
+      if (!fechaObtencion || isNaN(fechaObtencion)) return;
 
       const dias = grupo.diasCaducidad || obtenerDiasCaducidadParaPuntos(grupo.puntosObtenidos || 0);
       const fechaCaducidad = new Date(fechaObtencion);
@@ -921,8 +934,8 @@ export function calcularPuntosEnProximoVencimiento(cliente) {
   let puntos = 0;
   cliente.historialPuntos.forEach(grupo => {
     if (grupo.puntosDisponibles > 0 && grupo.estado !== 'Caducado') {
-      const fechaObtencion = new Date((grupo.fechaObtencion || '').split('T')[0] + 'T00:00:00Z');
-      if (isNaN(fechaObtencion)) return;
+      const fechaObtencion = _safeParseDate(grupo.fechaObtencion);
+      if (!fechaObtencion || isNaN(fechaObtencion)) return;
 
       const dias = grupo.diasCaducidad || obtenerDiasCaducidadParaPuntos(grupo.puntosObtenidos || 0);
       const fechaCaducidad = new Date(fechaObtencion);
