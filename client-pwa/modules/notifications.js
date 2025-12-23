@@ -731,7 +731,7 @@ function startNotifPermissionWatcher() {
         if (
           AUTO_RESUBSCRIBE &&
           permStatus.state === 'granted' &&
-          hasPriorAppConsent() &&
+
           !isNotifEnabledLocally() &&
           st !== 'blocked' &&
           st !== 'soft_blocked'
@@ -742,7 +742,7 @@ function startNotifPermissionWatcher() {
         permStatus.onchange = () => {
           __permWatcher.last = permStatus.state;
           refreshNotifUIFromPermission(); syncProfileConsentUI();
-          if (AUTO_RESUBSCRIBE && permStatus.state === 'granted' && hasPriorAppConsent() && !isNotifEnabledLocally() && (localStorage.getItem(LS_NOTIF_STATE) !== 'blocked')) {
+          if (AUTO_RESUBSCRIBE && permStatus.state === 'granted' && !isNotifEnabledLocally() && (localStorage.getItem(LS_NOTIF_STATE) !== 'blocked')) {
             obtenerYGuardarTokenOneShot().catch(() => { });
           }
         };
@@ -763,7 +763,7 @@ function startPollingWatcher() {
     if (
       AUTO_RESUBSCRIBE &&
       cur === 'granted' &&
-      hasPriorAppConsent() &&
+
       !isNotifEnabledLocally() &&
       st !== 'blocked' &&
       st !== 'soft_blocked'
