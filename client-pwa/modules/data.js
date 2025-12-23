@@ -240,6 +240,44 @@ export function updateVencimientoCard(cliente = {}) {
   }
 }
 
+// Helper para calcular vencimientos
+function computeUpcomingExpirations(cliente) {
+  const hist = Array.isArray(cliente?.historialPuntos) ? cliente.historialPuntos : [];
+  const hoy0 = new Date();
+  hoy0.setHours(0, 0, 0, 0);
+
+  let rawList = [];
+
+  for (const i of hist) {
+    const disp = Number(i?.puntosDisponibles || 0);
+    const dias = Number(i?.diasCaducidad || 0);
+    if (disp <= 0 || dias <= 0) continue;
+
+    const base = parseDateLike(i.fechaObtencion); // Usamos helpers existentes
+    if (!base) continue;
+
+    const vence = new Date(base.getTime());
+    vence.setDate(vence.getDate() + dias);
+
+    // Si ya venció ayer, no lo mostramos (o sí, si es muy reciente, pero mejor solo futuros)
+    if (vence < hoy0) continue;
+
+    rawList.push({ ts: vence.getTime(), puntos: disp });
+  }
+
+  // Agrupar por fecha EXACTA
+  const grouped = {};
+  for (const item of rawList) {
+    // Key por día para agrupar
+    const k = Math.floor(item.ts / 86400000);
+    if (!grouped[k]) grouped[k] = { ts: item.ts, puntos: 0 };
+    grouped[k].puntos += item.puntos;
+  }
+
+  // Convertir a array y ordenar
+  return Object.values(grouped).sort((a, b) => a.ts - b.ts);
+}
+
 // === Render principal ===
 function renderizarPantallaPrincipal(opts = {}) {
   if (!clienteData) return;
