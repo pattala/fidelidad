@@ -56,22 +56,20 @@ function computeUpcomingExpirations(cliente = {}, windowDays = null) {
   };
   const inWindow = (ms) => ms >= todayStart && (untilMs ? ms <= untilMs : true);
 
-  // (1) Vencimientos[]
-  const byDayV = {};
+  // (1) Vencimientos[] (Legacy)
+  const byDay = {};
+
   const arrV = Array.isArray(cliente?.vencimientos) ? cliente.vencimientos : [];
   for (const x of arrV) {
     const pts = Number(x?.puntos || 0);
     const ts = parseTs(x?.venceAt);
     if (pts > 0 && ts && inWindow(ts)) {
       const dk = dayKey(ts);
-      byDayV[dk] = (byDayV[dk] || 0) + pts;
+      byDay[dk] = (byDay[dk] || 0) + pts;
     }
   }
-  const listV = Object.keys(byDayV).map(k => ({ ts: Number(k), puntos: byDayV[k] })).sort((a, b) => a.ts - b.ts);
-  if (listV.length) return listV;
 
-  // (2) historialPuntos[]
-  const byDayH = {};
+  // (2) historialPuntos[] (New)
   const hist = Array.isArray(cliente?.historialPuntos) ? cliente.historialPuntos : [];
   for (const h of hist) {
     const obt = (typeof h?.fechaObtencion?.toDate === 'function') ? h.fechaObtencion.toDate() : new Date(h?.fechaObtencion);
@@ -83,15 +81,20 @@ function computeUpcomingExpirations(cliente = {}, windowDays = null) {
     vence.setHours(23, 59, 59, 999);
     vence.setDate(vence.getDate() + dias);
     const ms = vence.getTime();
+
+    // Solo si aún está disponible y no caducó "hace mucho" (aunque inWindow lo filtra)
+    if (h.estado === 'Caducado') continue;
+
     if (!inWindow(ms)) continue;
 
     const dk = dayKey(ms);
-    byDayH[dk] = (byDayH[dk] || 0) + disp;
+    byDay[dk] = (byDay[dk] || 0) + disp;
   }
-  const listH = Object.keys(byDayH).map(k => ({ ts: Number(k), puntos: byDayH[k] })).sort((a, b) => a.ts - b.ts);
-  if (listH.length) return listH;
 
-  // (3) directos (fallback)
+  const listAll = Object.keys(byDay).map(k => ({ ts: Number(k), puntos: byDay[k] })).sort((a, b) => a.ts - b.ts);
+  if (listAll.length) return listAll;
+
+  // (3) directos (fallback legacy)
   const directPts = Number(cliente?.puntosProximosAVencer ?? 0);
   const directTs = parseTs(cliente?.fechaProximoVencimiento);
   if (directPts > 0 && directTs && inWindow(directTs)) {
