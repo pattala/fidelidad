@@ -302,7 +302,14 @@ export async function registerNewAccount() {
       const dSocio = await rSocio.json();
       console.log('[assign-socio-number][PWA]', rSocio.status, dSocio);
 
-      console.log('[assign-socio-number][PWA]', rSocio.status, dSocio);
+      // DEBUG: Mostrar error de email en UI si falla
+      if (dSocio?.mail?.error) {
+        console.warn('[Signup] Email sending failed:', dSocio.mail);
+        UI.showToast(`Registro OK, pero falló el email: ${dSocio.mail.error} (${dSocio.mail.details || ''})`, 'warning', 10000);
+      } else if (dSocio?.mail?.preview) {
+        console.warn('[Signup] Email in PREVIEW mode:', dSocio.mail);
+        UI.showToast('Registro OK. Email en modo PREVIEW (Faltan claves de SendGrid en Server)', 'warning', 10000);
+      }
 
       // ─────────────────────────────────────────────
       // GAMIFICATION: Welcome Bonus (Registro Simple)
