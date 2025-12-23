@@ -103,7 +103,17 @@ export async function sendPasswordResetFromLogin() {
       url: window.location.origin,
       handleCodeInApp: false
     };
-    await auth.sendPasswordResetEmail(email, actionCodeSettings);
+    try {
+      await auth.sendPasswordResetEmail(email, actionCodeSettings);
+    } catch (e) {
+      if (e.code === 'auth/unauthorized-continue-uri') {
+        console.warn('Dominio no autorizado para redirect. Enviando email básico.');
+        await auth.sendPasswordResetEmail(email);
+      } else {
+        throw e;
+      }
+    }
+
     UI.showToast(`Si existe una cuenta para ${email}, recibirás un correo en breve.`, "success", 10000);
     // User request: volver a la pantalla de login
     UI.showScreen('login-screen');
