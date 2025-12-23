@@ -589,8 +589,82 @@ export function closeProfileModal() {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Inbox de Notificaciones (Modal)
+// Confirmación Custom (para que parezca nativo de App)
 // ─────────────────────────────────────────────────────────────
+export function showConfirmModal(title, msg) {
+  return new Promise((resolve) => {
+    const m = document.getElementById('confirm-modal');
+    const t = document.getElementById('confirm-title');
+    const b = document.getElementById('confirm-message');
+    const btnYs = document.getElementById('confirm-btn-ok');
+    const btnNo = document.getElementById('confirm-btn-cancel');
+
+    if (!m) return resolve(window.confirm(`${title}\n${msg}`)); // Fallback seguro
+
+    t.textContent = title;
+    b.textContent = msg;
+    m.style.display = 'flex';
+
+    // Cleanup listeners anteriores (clonando)
+    const newYs = btnYs.cloneNode(true);
+    const newNo = btnNo.cloneNode(true);
+    btnYs.parentNode.replaceChild(newYs, btnYs);
+    btnNo.parentNode.replaceChild(newNo, btnNo);
+
+    const close = (val) => {
+      m.style.display = 'none';
+      resolve(val);
+    };
+
+    newYs.addEventListener('click', () => close(true));
+    newNo.addEventListener('click', () => close(false));
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Badge de Notificaciones
+// ─────────────────────────────────────────────────────────────
+export async function checkUnreadMessages() {
+  try {
+    const btn = document.getElementById('btn-notifs');
+    if (!btn) return;
+
+    const uid = firebase.auth().currentUser?.uid;
+    if (!uid) return;
+
+    // Buscar ID real
+    let clienteId = uid;
+    try { if (Data?.getClienteDocIdPorUID) clienteId = await Data.getClienteDocIdPorUID(uid) || uid; } catch { }
+
+    // Chequeo liviano: limit(1) solo para ver si "hay algo"
+    const snap = await firebase.firestore()
+      .collection('clientes')
+      .doc(clienteId)
+      .collection('inbox')
+      .where('read', '==', false)
+      .limit(1)
+      .get();
+
+    if (!snap.empty) {
+      btn.classList.add('has-unread');
+    } else {
+      btn.classList.remove('has-unread');
+    }
+  } catch (e) { console.warn('[UI] checkUnreadMessages error', e); }
+}
+
+// Wire up global events
+document.addEventListener('rampet:notification-received', () => {
+  // Cuando llega push, re-check badge
+  checkUnreadMessages();
+});
+
+// Listener carga inicial
+document.addEventListener('DOMContentLoaded', () => {
+  // delay pequeño para auth
+  setTimeout(checkUnreadMessages, 3000);
+});
+
 // ─────────────────────────────────────────────────────────────
 // Inbox de Notificaciones (Modal)
 // ─────────────────────────────────────────────────────────────
@@ -602,6 +676,10 @@ export async function openInboxModal() {
   modal.style.display = 'flex';
   container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Cargando mensajes...</p>';
 
+  // Al abrir, quitamos badge visualmente (asumimos que el user "vio" que hay mensajes)
+  // Opcional: marcar como leídos en back, pero por ahora solo UI
+  document.getElementById('btn-notifs')?.classList.remove('has-unread');
+
   // Wiring botón "Limpiar todo"
   const clearBtn = document.getElementById('clear-inbox-btn');
   if (clearBtn) {
@@ -609,7 +687,9 @@ export async function openInboxModal() {
     const newBtn = clearBtn.cloneNode(true);
     clearBtn.parentNode.replaceChild(newBtn, clearBtn);
     newBtn.addEventListener('click', async () => {
-      if (confirm('¿Borrar todos los mensajes?')) {
+      // Uso del modal custom
+      const ok = await showConfirmModal('Limpiar todo', '¿Borrar todos los mensajes? No se puede deshacer.');
+      if (ok) {
         try {
           await Data.clearInbox();
           openInboxModal(); // recargar
@@ -623,16 +703,16 @@ export async function openInboxModal() {
   }
 
   try {
-    const uid = firebase.auth().currentUser?.uid;
-    if (!uid) {
+    const user = firebase.auth().currentUser;
+    if (!user) {
       container.innerHTML = '<p style="text-align:center; margin-top:20px;">Debes iniciar sesión.</p>';
       return;
     }
 
-    let clienteId = uid;
+    let clienteId = user.uid;
     try {
       if (Data && Data.getClienteDocIdPorUID) {
-        clienteId = await Data.getClienteDocIdPorUID(uid) || uid;
+        clienteId = await Data.getClienteDocIdPorUID(user.uid) || user.uid;
       }
     } catch { }
 
@@ -657,9 +737,14 @@ export async function openInboxModal() {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
+    // Batch para marcar leídos visualmente si quisiéramos
+    const unreadIds = [];
+
     snap.forEach(doc => {
       const d = doc.data();
       const id = doc.id;
+      if (!d.read) unreadIds.push(doc.ref);
+
       const date = d.ts ? new Date(d.ts) : new Date();
       const isToday = date >= startOfToday;
       const dateStr = isToday
@@ -723,7 +808,9 @@ export async function openInboxModal() {
       // Wire delete button
       item.querySelector('.delete-msg-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (confirm('¿Eliminar mensaje?')) {
+        // Uso del modal custom
+        const ok = await showConfirmModal('Eliminar mensaje', '¿Estás seguro que querés borrar este mensaje?');
+        if (ok) {
           try {
             item.style.opacity = '0.5';
             await Data.deleteInboxItem(id);
@@ -742,6 +829,13 @@ export async function openInboxModal() {
 
       container.appendChild(item);
     });
+
+    // Marcar leídos silenciosamente (fire & forget)
+    if (unreadIds.length > 0) {
+      const batch = firebase.firestore().batch();
+      unreadIds.forEach(ref => batch.update(ref, { read: true }));
+      batch.commit().catch(() => { });
+    }
 
   } catch (err) {
     console.warn('[Inbox] Error cargando mensajes:', err);
