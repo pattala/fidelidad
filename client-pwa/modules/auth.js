@@ -308,7 +308,8 @@ export async function registerNewAccount() {
         UI.showToast(`Registro OK, pero falló el email: ${dSocio.mail.error} (${dSocio.mail.details || ''})`, 'warning', 10000);
       } else if (dSocio?.mail?.preview) {
         console.warn('[Signup] Email in PREVIEW mode:', dSocio.mail);
-        UI.showToast('Registro OK. Email en modo PREVIEW (Faltan claves de SendGrid en Server)', 'warning', 10000);
+        const missing = dSocio.mail.missingVars ? dSocio.mail.missingVars.join(', ') : 'Keys';
+        UI.showToast(`Registro OK. Email en modo PREVIEW (Faltan: ${missing})`, 'warning', 10000);
       }
 
       // ─────────────────────────────────────────────

@@ -1,8 +1,8 @@
-// /api/send-email.js (ESM) — Email con plantillas unificadas, CORS, auth y SendGrid
+// /api/send-email.js (ESM) — Email con plantillas unificadas, CORS, auth y Nodemailer (Gmail)
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import { resolveTemplate, applyBlocksAndVars } from '../utils/templates.js';
 
 // --- Init Firebase Admin ---
@@ -15,10 +15,15 @@ if (!getApps().length) {
 const db = getFirestore();
 const adminAuth = getAuth();
 
-// --- SendGrid ---
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+// --- Nodemailer Transporter (Gmail) ---
+// Se requiere SMTP_USER (tu gmail) y SMTP_PASS (App Password generada en Google)
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
+});
 
 // --- CORS ---
 const ALLOWED = (process.env.CORS_ALLOWED_ORIGINS || '')
@@ -96,26 +101,34 @@ export default async function handler(req, res) {
     const { to, templateId, templateData = {} } = req.body || {};
     if (!to || !templateId) return res.status(400).json({ message: 'Faltan parámetros: to y templateId.' });
 
-    // 1) Plantilla unificada (con fallback legacy)
+    // 1) Plantilla unificada
     const tpl = await resolveTemplate(db, templateId, 'email');
     const subject = applyBlocksAndVars(tpl.titulo, { ...templateData, email: to });
     const htmlInner = applyBlocksAndVars(tpl.cuerpo, { ...templateData, email: to });
     const html = buildHtmlLayout(htmlInner);
 
-    const fromEmail = process.env.SENDGRID_FROM_EMAIL;
-    const apiKey = process.env.SENDGRID_API_KEY;
-
-    // 2) Si falta SendGrid, devolvemos preview para debug
-    if (!apiKey || !fromEmail) {
-      return res.status(200).json({ ok: true, preview: true, to, subject, html });
+    // 2) Validar Credenciales SMTP
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.error('Faltan credenciales SMTP_USER / SMTP_PASS');
+      return res.status(500).json({
+        message: 'Error de configuración de correo (SMTP).',
+        missing: !process.env.SMTP_USER ? 'SMTP_USER' : 'SMTP_PASS'
+      });
     }
 
-    // 3) Enviar con SendGrid
-    await sgMail.send({ to, from: { email: fromEmail, name: 'Club RAMPET' }, subject, html });
-    return res.status(200).json({ ok: true, sent: true, to, subject });
+    // 3) Enviar con Nodemailer (Gmail)
+    const info = await transporter.sendMail({
+      from: `"Club RAMPET" <${process.env.SMTP_USER}>`,
+      to,
+      subject,
+      html
+    });
+
+    console.log('Email enviado:', info.messageId);
+    return res.status(200).json({ ok: true, sent: true, to, subject, messageId: info.messageId });
+
   } catch (error) {
     console.error('Error fatal procesando el email:', error);
-    if (error?.response) console.error(error.response.body);
     return res.status(500).json({ message: 'Error interno del servidor.', error: error.message });
   }
 }
