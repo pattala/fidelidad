@@ -99,7 +99,11 @@ export async function sendPasswordResetFromLogin() {
   const email = prompt("Por favor, ingresa tu dirección de email para enviarte el enlace de recuperación:");
   if (!email) return;
   try {
-    await auth.sendPasswordResetEmail(email);
+    const actionCodeSettings = {
+      url: window.location.origin,
+      handleCodeInApp: false
+    };
+    await auth.sendPasswordResetEmail(email, actionCodeSettings);
     UI.showToast(`Si existe una cuenta para ${email}, recibirás un correo en breve.`, "success", 10000);
     // User request: volver a la pantalla de login
     UI.showScreen('login-screen');
