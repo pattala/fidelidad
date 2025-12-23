@@ -1056,18 +1056,3 @@ header h1 {
   text-decoration: underline;
   /* feedback visual accesible */
 }
-
-
-/* Fix: Removed invalid style tags */
-.card {
-  max-width: 960px;
-  margin: 12px auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px;
-  background: #fff;
-}
-
-.info-banner.card {
-  margin-bottom: 12px;
-}
