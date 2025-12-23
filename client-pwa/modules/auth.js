@@ -101,6 +101,8 @@ export async function sendPasswordResetFromLogin() {
   try {
     await auth.sendPasswordResetEmail(email);
     UI.showToast(`Si existe una cuenta para ${email}, recibirás un correo en breve.`, "success", 10000);
+    // User request: volver a la pantalla de login
+    UI.showScreen('login-screen');
   } catch (error) {
     UI.showToast("Ocurrió un problema al enviar el correo. Inténtalo de nuevo.", "error");
     console.error("Error en sendPasswordResetFromLogin:", error);
