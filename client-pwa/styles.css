@@ -149,20 +149,11 @@ header h1 {
   border-color: #ffcccc;
   /* ⚡ FIX: Que parpadee también al tener unread, no solo blink momentáneo */
   animation: bellBlink 2s ease-in-out infinite;
+  transform-origin: top center;
+  /* Para que oscile como campana colgada */
 }
 
-#btn-notifs.has-unread::after {
-  content: "";
-  position: absolute;
-  top: 6px;
-  right: 10px;
-  width: 10px;
-  height: 10px;
-  background: #f00;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  animation: bellPulse 2s infinite;
-}
+/* Eliminado ::after redundante, ya usamos #notif-badge */
 
 @keyframes bellPulse {
   0% {
