@@ -145,12 +145,41 @@ header h1 {
 }
 
 #btn-notifs.has-unread {
-  background: #fff8f8;
-  border-color: #ffcccc;
-  /* ⚡ FIX: Que parpadee también al tener unread, no solo blink momentáneo */
-  animation: bellBlink 2s ease-in-out infinite;
+  background: #ffebee;
+  /* Rojo muy claro pero visible */
+  border-color: #ef5350;
+  /* Rojo definido */
+  color: #c62828;
+  box-shadow: 0 0 8px rgba(239, 83, 80, 0.4);
+  /* Glow suave */
+  /* Animación de "sacudida" lateral (tipo notificación clásica) */
+  animation: bellShake 3s ease-in-out infinite;
   transform-origin: top center;
-  /* Para que oscile como campana colgada */
+}
+
+@keyframes bellShake {
+
+  0%,
+  90%,
+  100% {
+    transform: rotate(0);
+  }
+
+  92% {
+    transform: rotate(15deg);
+  }
+
+  94% {
+    transform: rotate(-15deg);
+  }
+
+  96% {
+    transform: rotate(10deg);
+  }
+
+  98% {
+    transform: rotate(-10deg);
+  }
 }
 
 /* Eliminado ::after redundante, ya usamos #notif-badge */

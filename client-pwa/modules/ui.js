@@ -685,9 +685,12 @@ export async function openInboxModal() {
   modal.style.display = 'flex';
   container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Cargando mensajes...</p>';
 
-  // Al abrir, quitamos badge visualmente (asumimos que el user "vio" que hay mensajes)
-  // Opcional: marcar como leídos en back, pero por ahora solo UI
-  document.getElementById('btn-notifs')?.classList.remove('has-unread');
+  // Al abrir, quitamos badge visualmente
+  const btnNotifs = document.getElementById('btn-notifs');
+  const badge = document.getElementById('notif-badge');
+
+  if (btnNotifs) btnNotifs.classList.remove('has-unread');
+  if (badge) badge.style.display = 'none';
 
   // Wiring botón "Limpiar todo"
   const clearBtn = document.getElementById('clear-inbox-btn');
