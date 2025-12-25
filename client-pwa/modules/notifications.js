@@ -519,6 +519,14 @@ async function getTokenWithRetry(reg, vapidKey, maxTries = 6) {
         // Detección de base de datos cerrada externamente
         const isDbClosing = (e && e.message && e.message.includes('database connection is closing')) || (e && e.name === 'InvalidStateError');
 
+        // Bloqueo de privacidad (Edge Strict, Incognito, Firefox Enhanced Tracking)
+        const isPrivacyBlock = (e && (e.name === 'SecurityError' || e.message?.includes('blocked') || e.message?.includes('storage')));
+        if (isPrivacyBlock) {
+          console.warn('[FCM] Storage bloqueado por navegador:', e);
+          toast('Tu navegador bloquea notificaciones. Revisa "Rastreo" o "Privacidad".', 'error', 6000);
+          throw new Error('storage-blocked'); // Abortar reintentos
+        }
+
         if ((isBadRequestOnDelete(e) || isDbClosing) && !__hardResetAttempted) {
           __hardResetAttempted = true;
           console.warn('[FCM] Error crítico detectado (%s).', isDbClosing ? 'DB Closing' : '400 Delete');
