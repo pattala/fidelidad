@@ -921,53 +921,44 @@ export async function handlePermissionSwitch(e) {
 }
 
 /* Foreground push → mostrar notificación del sistema */
-/* Foreground push → mostrar notificación del sistema */
 async function hookOnMessage() {
   try {
     await ensureMessagingCompatLoaded();
     const messaging = firebase.messaging();
 
-    // Handler de mensajes en primer plano
     messaging.onMessage(async (payload) => {
-      debugLog('Msg(FG)', 'Mensaje recibido en primer plano:', payload);
+      console.log('[FG] Msg received:', payload);
 
-      // Normalización robusta (similar a SW)
-      const d = (payload && payload.data) || {};
       const n = (payload && payload.notification) || {};
-      const title = n.title || d.title || d.titulo || window.APP_CONFIG?.appName || 'Club de Fidelidad';
-      const body = n.body || d.body || d.cuerpo || '';
-      const icon = n.icon || d.icon || '/images/mi_logo_192.png';
-      const url = d.url || d.click_action || '/?inbox=1';
-      const tag = d.tag || d.id || 'loyalty-app-fg';
+      const d = (payload && payload.data) || {};
+
+      const title = n.title || d.title || 'Nueva Notificación';
+      const body = n.body || d.body || '';
+      const icon = '/images/mi_logo_192.png';
 
       try {
-        // Intentar obtener registro activo
-        let reg = await navigator.serviceWorker.getRegistration(SW_PATH);
-        if (!reg) reg = await navigator.serviceWorker.getRegistration();
-        if (!reg) reg = await navigator.serviceWorker.ready;
+        // Fallback robusto para obtener el SW activo
+        const reg = await navigator.serviceWorker.ready || await navigator.serviceWorker.getRegistration();
 
         if (reg && reg.showNotification) {
           await reg.showNotification(title, {
             body: body,
             icon: icon,
-            tag: tag,
-            requireInteraction: false,
-            data: { url, ...d }
+            tag: 'rampet-fg',
+            data: { url: '/?inbox=1' }
           });
-
-          // Emitir evento para actualizar badges/UI
           emit('rampet:notification-received', payload);
         } else {
-          console.warn('[onMessage] No SW registration found to show notification');
+          console.warn('[FG] No active SW found to display notification.');
         }
       } catch (e) {
-        console.warn('[onMessage] error showing notification:', (e && e.message) || e);
+        console.warn('[FG] Error display:', e);
       }
     });
 
     console.log('[Ignite] Foreground messaging listener hooked.');
   } catch (e) {
-    console.warn('[notifications] hookOnMessage error:', (e && e.message) || e);
+    console.warn('[notifications] hookOnMessage error:', e);
   }
 }
 
