@@ -447,6 +447,29 @@ async function syncProfileTogglesFromRuntime() {
   }
 }
 
+// --- Botón de Pánico: Reparar Notificaciones (PC Debug) ---
+const parent = notifEl?.closest('.form-group') || notifEl?.parentElement;
+if (parent && !document.getElementById('btn-fix-push-ui')) {
+  const fixBtn = document.createElement('button');
+  fixBtn.id = 'btn-fix-push-ui';
+  fixBtn.type = 'button';
+  fixBtn.className = 'btn-text-danger';
+  fixBtn.style.cssText = 'font-size: 0.8rem; margin-top: 5px; text-decoration: underline; background:none; border:none; cursor:pointer; color: #ff4444;';
+  fixBtn.textContent = '¿No llegan? Reparar Notificaciones';
+  fixBtn.onclick = async (e) => {
+    e.preventDefault();
+    if (!confirm('Esto reiniciará la conexión de notificaciones. ¿Continuar?')) return;
+
+    const { hardResetFcmStores } = await import('./notifications.js');
+    showToast('Reparando...', 'info');
+    await hardResetFcmStores();
+    showToast('Listo. Recargando...', 'success');
+    setTimeout(() => location.reload(), 1000);
+  };
+  parent.appendChild(fixBtn);
+}
+}
+
 export async function openProfileModal() {
   const m = document.getElementById('profile-modal');
   if (!m) return;

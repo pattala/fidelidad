@@ -1978,7 +1978,15 @@ export async function handleSignOutCleanup() {
 
 /* helpers menores */ function hasPriorAppConsent() { try { return localStorage.getItem(LS_NOTIF_STATE) === 'accepted'; } catch { return false; } }
 // 🆕 Exportado para depuración
-export { fetchServerNotifEnabled };
+export { fetchServerNotifEnabled, hardResetFcmStores };
+
+// Tooling for console
+window.resetPush = async () => {
+  console.log('Resetting Push manually via console...');
+  await hardResetFcmStores();
+  alert('Push reset done. Reloading...');
+  location.reload();
+};
 
 
 
