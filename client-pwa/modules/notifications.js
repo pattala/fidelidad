@@ -921,6 +921,7 @@ export async function handlePermissionSwitch(e) {
 }
 
 /* Foreground push → mostrar notificación del sistema */
+/* Foreground push → mostrar notificación del sistema */
 async function hookOnMessage() {
   try {
     await ensureMessagingCompatLoaded();
@@ -929,8 +930,15 @@ async function hookOnMessage() {
     // Handler de mensajes en primer plano
     messaging.onMessage(async (payload) => {
       debugLog('Msg(FG)', 'Mensaje recibido en primer plano:', payload);
+
+      // Normalización robusta (similar a SW)
       const d = (payload && payload.data) || {};
       const n = (payload && payload.notification) || {};
+      const title = n.title || d.title || d.titulo || window.APP_CONFIG?.appName || 'Club de Fidelidad';
+      const body = n.body || d.body || d.cuerpo || '';
+      const icon = n.icon || d.icon || '/images/mi_logo_192.png';
+      const url = d.url || d.click_action || '/?inbox=1';
+      const tag = d.tag || d.id || 'loyalty-app-fg';
 
       try {
         // Intentar obtener registro activo
@@ -939,20 +947,12 @@ async function hookOnMessage() {
         if (!reg) reg = await navigator.serviceWorker.ready;
 
         if (reg && reg.showNotification) {
-          const defaultTitle = window.APP_CONFIG?.appName || 'Club de Fidelidad';
-          const title = n.title || d.title || defaultTitle;
-          const body = n.body || d.body || '';
-          const icon = n.icon || d.icon || '/images/mi_logo_192.png';
-
           await reg.showNotification(title, {
             body: body,
             icon: icon,
-            tag: d.tag || d.id || 'loyalty-app-fg', // Tag único para evitar duplicados si SW también lo recibe
-            requireInteraction: false, // Dejar que el SO decida
-            data: {
-              url: d.url || d.click_action || '/?inbox=1',
-              ...(d || {})
-            }
+            tag: tag,
+            requireInteraction: false,
+            data: { url, ...d }
           });
 
           // Emitir evento para actualizar badges/UI
