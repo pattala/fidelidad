@@ -12,14 +12,41 @@ let campanasData = [];
 let unsubscribeCliente = null;
 let unsubscribeCampanas = null;
 
+let _isDestructionPending = false;
+
 export function cleanupListener() {
+  _isDestructionPending = true; // 🛑 Flag para detener reintentos
   if (unsubscribeCliente) unsubscribeCliente();
   if (unsubscribeCampanas) unsubscribeCampanas();
+  unsubscribeCliente = null;
+  unsubscribeCampanas = null;
   clienteData = null;
   clienteRef = null;
   premiosData = [];
   campanasData = [];
 }
+
+// ... (existing code)
+
+export async function listenToClientData(user, opts = {}) {
+  _isDestructionPending = false; // ✅ Reset flag al iniciar
+  // ...
+}, (error) => {
+  if (_isDestructionPending) return; // 🛑 Si ya cerramos, no reintentar
+  console.warn("[PWA] Error en listener de cliente:", error.code || error);
+
+  // Reintento inteligente solo si NO estamos cerrando
+  if ((error.code === 'permission-denied' || error.message?.includes('permission')) && (!opts.retries || opts.retries < 3)) {
+    if (_isDestructionPending) return;
+    console.log('[PWA] Reintentando suscripción en 2s...');
+    setTimeout(() => {
+      if (_isDestructionPending) return;
+      listenToClientData(user, { ...opts, retries: (opts.retries || 0) + 1 });
+    }, 2000);
+  } else {
+    // ...
+  }
+});
 
 // -------------------- Helpers locales --------------------
 function parseDateLike(d) {

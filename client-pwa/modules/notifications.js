@@ -937,8 +937,6 @@ async function hookOnMessage() {
       const icon = '/images/mi_logo_192.png';
       const id = d.id || d.jobId || 'fg-' + Date.now();
 
-      // 🔔 1. UI Toast Inmediato (Fallback Visual asegurado)
-      try { UI.showToast(`🔔 ${title}`, 'info', 4000); } catch (e) { }
 
       // 🔔 2. System Notification (Intento Nativo)
       try {
