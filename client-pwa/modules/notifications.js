@@ -1901,7 +1901,8 @@ export async function initNotificationsOnce() {
   } catch (e) { debugLog('Init', 'Error chequeando server notif status', e); }
 
   if (AUTO_RESUBSCRIBE && ('Notification' in window) && Notification.permission === 'granted'
-    && (hasPriorAppConsent() || serverSaysYes) && !isNotifEnabledLocally() && (localStorage.getItem(LS_NOTIF_STATE) !== 'blocked')) {
+    && (hasPriorAppConsent() || serverSaysYes) && (localStorage.getItem(LS_NOTIF_STATE) !== 'blocked')) {
+    // ⬇️ FIX: Removemos !isNotifEnabledLocally() para forzar re-sync con Firestore (por si el token se borró en server)
     try { await obtenerYGuardarTokenOneShot(); } catch (e) { }
   }
 
