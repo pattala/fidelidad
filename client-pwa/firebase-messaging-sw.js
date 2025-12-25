@@ -132,3 +132,47 @@ self.addEventListener('notificationclick', (event) => {
     return self.clients.openWindow(absolute);
   })());
 });
+// ... (existing code)
+
+/* ──────────────────────────────────────────────────────────────
+   Hybrid Backup: Raw Push Listener
+   Si Firebase falla en despertar el onBackgroundMessage, esto lo hará.
+   ────────────────────────────────────────────────────────────── */
+self.addEventListener('push', (event) => {
+  // Intentamos no pisar a Firebase si ya lo manejó
+  // Pero como es data-only, Firebase a veces no hace nada visual.
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    // Si no es JSON, texto plano?
+    return;
+  }
+
+  // Si es un mensaje de 'notificacion' estandar (con payload.notification),
+  // Firebase SDK debería manejarlo (o no, si lo quitamos del backend).
+  // Aquí nos enfocamos en data-only que NO tiene 'notification'.
+  if (payload && payload.data && !payload.notification) {
+    const d = normPayload({ data: payload.data });
+
+    console.log('[SW-Raw] Push received (Data-Only):', d);
+
+    // Evitar duplicados?
+    // Usamos el tag para que si Firebase también lo dispara, se reemplacen.
+    const title = d.title || 'Notificación';
+    const options = {
+      body: d.body,
+      icon: d.icon,
+      tag: d.tag,
+      data: { id: d.id, url: d.url, via: 'raw-push' },
+      renotify: true,
+      requireInteraction: true
+    };
+    if (d.badge) options.badge = d.badge;
+
+    event.waitUntil(
+      self.registration.showNotification(title, options)
+    );
+  }
+});

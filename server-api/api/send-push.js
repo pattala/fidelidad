@@ -85,6 +85,7 @@ export default async function handler(req, res) {
                 templateId,
                 uid: r.uid,
                 id: jobId, // ✅ Unique ID for distinct tags/renotify
+                title: titulo, // ✅ RESTORED
                 body: cuerpo,
                 icon: '/images/mi_logo_192.png'
               },
