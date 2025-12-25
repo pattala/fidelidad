@@ -87,7 +87,7 @@ export default async function handler(req, res) {
                 id: jobId, // ✅ Unique ID for distinct tags/renotify
                 title: titulo, // ✅ RESTORED
                 body: cuerpo,
-                icon: '/images/mi_logo_192.png'
+                icon: 'https://rampet.vercel.app/images/mi_logo_192.png' // ⚡ ABSOLUTE URL
               },
               webpush: { headers: { Urgency: "high" } } // ⚡ Force instant delivery
             });
