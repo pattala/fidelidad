@@ -209,16 +209,9 @@ export async function obtenerYGuardarToken() {
     msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
       // USER REQUEST: SIEMPRE Popup, NUNCA Toast.
-      const title = payload.notification?.title || payload.data?.title || 'Notificación';
-      const body = payload.notification?.body || payload.data?.body || '';
-      const icon = payload.notification?.icon || payload.data?.icon || 'https://rampet.vercel.app/images/mi_logo_192.png';
-
-      // Force Native Notification
-      new Notification(title, {
-        body: body,
-        icon: icon,
-        tag: 'rampet-foreground'
-      });
+      // ESTRATEGIA v2.1.6: Delegamos TODO al Service Worker (Data-Only).
+      // Aquí no hacemos nada visual para evitar duplicados si el SW dispara.
+      console.log('[FCM] Suppressed Foreground UI (Relying on SW)');
     });
 
     toast('Notificaciones Activas ✅', 'success');
