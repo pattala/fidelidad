@@ -33,11 +33,13 @@ self.addEventListener('push', (event) => {
 
     // FIX CHROME OPEN DOUBLE POPUP:
     // Si la app está abierta y enfocada, dejamos que notifications.js maneje el popup (onMessage).
-    // Esto evita que salga doble (uno del SW y otro del Client).
-    const allClients = self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const isFocused = allClients.some(c => c.focused);
-    if (isFocused) {
-      console.log('[SW] App en primer plano. Cediendo control a Cliente (onMessage).');
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    // Debug log para ver qué detecta
+    const focusedClient = allClients.find(c => c.focused);
+    console.log('[SW-DoublePrevention] Clients:', allClients.length, 'Focused:', !!focusedClient);
+
+    if (focusedClient) {
+      console.log('[SW] App en primer plano. Cediendo control a Cliente.');
       return;
     }
 

@@ -188,8 +188,17 @@ export async function obtenerYGuardarToken() {
     localStorage.setItem(LS_NOTIF_STATE, 'accepted');
 
     // UI Update
+    // UI Update
     show($('notif-card'), false);
     show($('notif-prompt-card'), false);
+
+    // Esconder advertencia roja del perfil si existe
+    const warmEl = document.getElementById('notif-warning');
+    if (warmEl) warmEl.style.display = 'none';
+
+    // Actualizar checkbox del perfil si existe
+    const checkEl = document.getElementById('notif-switch');
+    if (checkEl) checkEl.checked = true;
 
     // Firestore Sync
     await saveTokenToFirestore(token);
