@@ -196,11 +196,18 @@ export async function obtenerYGuardarToken() {
 
     // 4. Foreground Listener (Hybrid Mode support)
     messaging.onMessage((payload) => {
-      console.log('[FCM] Foreground Message:', payload);
+      console.log('[FCM] Foreground Message (Main):', payload);
+      // USER REQUEST: SIEMPRE Popup, NUNCA Toast.
       const title = payload.notification?.title || payload.data?.title || 'Notificación';
       const body = payload.notification?.body || payload.data?.body || '';
-      // Show In-App Toast
-      toast(`${title}: ${body}`, 'info');
+      const icon = payload.notification?.icon || payload.data?.icon || 'https://rampet.vercel.app/images/mi_logo_192.png';
+
+      // Force Native Notification
+      new Notification(title, {
+        body: body,
+        icon: icon,
+        tag: 'rampet-foreground'
+      });
     });
 
     toast('Notificaciones Activas ✅', 'success');
