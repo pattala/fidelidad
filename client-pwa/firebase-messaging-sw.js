@@ -63,7 +63,8 @@ self.addEventListener('push', async (event) => {
 
       // -- OPCIONES AGRESIVAS DE PERSISTENCIA --
       renotify: true,           // Fuerza vibración/sonido aunque sea el mismo tag
-      requireInteraction: true, // Se queda pegado en pantalla hasta que el usuario interactúa
+      renotify: true,           // Fuerza vibración/sonido aunque sea el mismo tag
+      requireInteraction: false, // Se va solo (default SO)
       actions: [
         { action: 'open', title: 'Ver Mensaje' }
       ]

@@ -67,6 +67,17 @@ function readConsentFallback() {
 // Pantalla principal
 // ─────────────────────────────────────────────────────────────
 export function renderMainScreen(clienteData, premiosData, campanasData = [], opts = {}) {
+  // Asegurar que el listener de la campana esté hookeado
+  const btnNotifs = document.getElementById('btn-notifs');
+  if (btnNotifs) {
+    // Clone para limpiar listeners viejos
+    const newBtn = btnNotifs.cloneNode(true);
+    btnNotifs.parentNode.replaceChild(newBtn, btnNotifs);
+    newBtn.addEventListener('click', () => {
+      openInboxModal();
+    });
+  }
+
   if (!clienteData) return;
 
   safeSetText('cliente-nombre', (clienteData.nombre || '--').split(' ')[0]);
