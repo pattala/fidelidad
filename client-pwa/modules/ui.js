@@ -108,10 +108,30 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   safeSetText('cliente-numero-socio', clienteData.numeroSocio ? `#${clienteData.numeroSocio}` : 'N° De Socio Pendiente de Aceptacion');
   safeSetText('cliente-puntos', clienteData.puntos || 0);
 
-  const termsBanner = document.getElementById('terms-banner');
-  if (termsBanner) termsBanner.style.display = !clienteData.terminosAceptados ? 'block' : 'none';
+  // Tarjeta Misión: Completar Domicilio
+  const missionAddress = document.getElementById('mission-address-card');
+  if (missionAddress) {
+    // Mostrar solo si NO tiene calle Y NO lo ha descartado explícitamente
+    const hasAddress = clienteData.domicilio && clienteData.domicilio.calle && clienteData.domicilio.calle.length > 0;
+    const isDismissed = clienteData.config && clienteData.config.addressPromptDismissed === true;
 
-  // Tarjeta de vencimiento
+    if (!hasAddress && !isDismissed) {
+      missionAddress.style.display = 'block';
+      // Hookear botón "completar"
+      const btn = missionAddress.querySelector('button');
+      if (btn) {
+        // Clonar para limpiar listeners previos
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', () => {
+          openProfileModal();
+          // Scroll to address section logic inside modal if needed
+        });
+      }
+    } else {
+      missionAddress.style.display = 'none';
+    }
+  }
   const vencCard = document.getElementById('vencimiento-card');
   if (vencCard) {
     const pts = Data.getPuntosEnProximoVencimiento(clienteData);
@@ -929,6 +949,9 @@ export async function openInboxModal() {
         // Evitar conflictos con el checkbox
         if (e.target.classList && e.target.classList.contains('inbox-select-check')) return;
 
+        // Evitar navegación default si es un enlace envuelto incorrectamente
+        e.preventDefault();
+
         // 1. Marcar como leído visualmente + BD
         try {
           await Data.markInboxAsRead(d.id);
@@ -947,18 +970,12 @@ export async function openInboxModal() {
           if (targetUrl.startsWith('http')) {
             window.open(targetUrl, '_blank');
           } else {
-            location.href = targetUrl;
+            window.location.href = targetUrl;
           }
         }
         // Si NO hay URL, simplemente cerramos el modal (ya se marcó leído)
-        // O podríamos expandir un detalle si el cuerpo es largo (futura mejora)
-        // Por ahora, asumimos "comportamiento notificación": click = acción o descartar.
         else {
-          // NO recargar la página. Solo cerrar modal si el usuario espera "ir" a ver algo.
-          // Si es solo texto informativo, quizás es mejor no cerrar, pero el usuario dijo "no se abre nada vuelve a la pwa".
-          // Probablemente el comportamiento deseado sea "marcar leido y ya".
-          // Vamos a mostrar un Toast "Mensaje marcado como leído" para dar feedback.
-          // showToast('Mensaje marcado como leído', 'info'); 
+          // Opcional: Expandir
         }
       };
 
