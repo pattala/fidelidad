@@ -9,6 +9,7 @@ import { auth, db } from './firebase.js'; // FIX: Imports necesarios
 
 let carouselIntervalId = null;
 let isDragging = false, startX, startScrollLeft;
+let unsubscribeInbox = null; // Store realtime subscription
 
 // ─────────────────────────────────────────────────────────────
 // Utilidades base
@@ -80,17 +81,28 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
 
   if (!clienteData) return;
 
-  // -- LOGICA NOTIFICACIONES --
-  // 1. Chequeo inicial al renderizar
-  setTimeout(checkUnreadMessages, 1000);
+  // -- LOGICA NOTIFICACIONES (REALTIME) --
+  // Si ya tenemos suscripción, no la duplicamos. Si cambió el usuario, podríamos reiniciar,
+  // pero por simplicidad asumimos SPA simple.
+  if (!unsubscribeInbox) {
+    unsubscribeInbox = Data.subscribeToUnreadInbox((count) => {
+      const btn = document.getElementById('btn-notifs');
+      const badge = document.getElementById('notif-badge');
 
-  // 2. Polling automático cada 60s
-  if (window._notifPollId) clearInterval(window._notifPollId);
-  window._notifPollId = setInterval(() => {
-    if (document.visibilityState === 'visible') {
-      checkUnreadMessages();
-    }
-  }, 60000);
+      if (btn) {
+        if (count > 0) {
+          btn.classList.add('blink-active');
+          if (badge) {
+            badge.textContent = count > 9 ? '9+' : String(count);
+            badge.style.display = 'inline-block';
+          }
+        } else {
+          btn.classList.remove('blink-active');
+          if (badge) badge.style.display = 'none';
+        }
+      }
+    });
+  }
 
   safeSetText('cliente-nombre', (clienteData.nombre || '--').split(' ')[0]);
   safeSetText('cliente-numero-socio', clienteData.numeroSocio ? `#${clienteData.numeroSocio}` : 'N° De Socio Pendiente de Aceptacion');
@@ -598,8 +610,6 @@ async function onSaveProfilePrefs() {
           await Data.saveGeoConsent(true);
         } else {
           await Data.saveGeoConsent(false);
-          geoEl.checked = false;
-          showToast('No pudimos activar ubicación. Revisá los permisos del navegador.', 'warning');
         }
       } else {
         await Data.saveGeoConsent(false);
@@ -614,7 +624,7 @@ async function onSaveProfilePrefs() {
       await Data.patchLocalConfig({ notifEnabled: notifChecked, geoEnabled: geoChecked });
     } catch { }
 
-    // (4) Refresco REAL cuando el navegador esté libre
+    // (4) Refresco REAL
     await (window.requestIdleCallback
       ? new Promise(resolve => requestIdleCallback(async () => {
         await syncProfileTogglesFromRuntime();
@@ -624,6 +634,7 @@ async function onSaveProfilePrefs() {
 
     closeProfileModal();
     showToast('Cambios guardados', 'success');
+
   } catch (err) {
     console.error(err);
     showToast('No se pudo guardar', 'error');
@@ -631,6 +642,43 @@ async function onSaveProfilePrefs() {
     if (btn) btn.disabled = false;
   }
 }
+
+// === Guardar Domicilio ===
+document.getElementById('address-save')?.addEventListener('click', async () => {
+  const btn = document.getElementById('address-save');
+  if (btn) btn.disabled = true;
+
+  try {
+    const dom = {
+      calle: document.getElementById('dom-calle')?.value?.trim() || '',
+      numero: document.getElementById('dom-numero')?.value?.trim() || '',
+      piso: document.getElementById('dom-piso')?.value?.trim() || '',
+      depto: document.getElementById('dom-depto')?.value?.trim() || '',
+      localidad: document.getElementById('dom-localidad')?.value?.trim() || '',
+      partido: document.getElementById('dom-partido')?.value?.trim() || '',
+      provincia: document.getElementById('dom-provincia')?.value || '',
+      cp: document.getElementById('dom-cp')?.value?.trim() || '',
+      pais: document.getElementById('dom-pais')?.value?.trim() || '',
+      referencia: document.getElementById('dom-referencia')?.value?.trim() || ''
+    };
+
+    await Data.updateAddress(dom);
+
+    // UI Feedback
+    const card = document.getElementById('address-card');
+    if (card) card.style.display = 'none'; // Ocultar form tras guardar
+
+    showToast('Domicilio guardado. ¡Gracias!', 'success');
+
+    // Disparar evento de dismissed para que no vuelva a molestar
+    document.dispatchEvent(new CustomEvent('rampet:address:dismissed'));
+  } catch (e) {
+    console.error(e);
+    showToast('Error al guardar domicilio', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+});
 
 export function closeProfileModal() {
   const m = document.getElementById('profile-modal');

@@ -320,6 +320,13 @@ export async function updateProfile(partial = {}) {
   await clienteRef.set(allowed, { merge: true });
 }
 
+export async function updateAddress(addressData) {
+  if (!clienteRef) throw new Error("No hay sesión activa para guardar domicilio");
+  // Guardamos bajo el campo 'domicilio'
+  await clienteRef.set({ domicilio: addressData }, { merge: true });
+  // Opcional: Si hay lógica de "puntos por domicilio", se manejaría en backend triggers
+}
+
 export async function updateConfig(partial = {}) {
   if (!clienteRef) return;
   const patch = {};
@@ -523,6 +530,27 @@ export async function getInboxMessages(limitCnt = 50) {
   const clienteId = (await getClienteDocIdPorUID(uid)) || uid;
   const snap = await db.collection('clientes').doc(clienteId).collection('inbox').orderBy('ts', 'desc').limit(limitCnt).get();
   return snap.docs.map(d => ({ ...d.data(), id: d.id, ref: d.ref }));
+}
+
+export function subscribeToUnreadInbox(callback) {
+  const uid = Auth.getCurrentUser()?.uid;
+  if (!uid) return () => { };
+
+  let internalUnsub = null;
+  let isCancelled = false;
+
+  getClienteDocIdPorUID(uid).then(cid => {
+    if (isCancelled || !cid) return;
+    const q = db.collection('clientes').doc(cid).collection('inbox').where('read', '==', false);
+    internalUnsub = q.onSnapshot(snap => {
+      callback(snap.size);
+    }, err => console.warn('[Data] Inbox listen error', err));
+  });
+
+  return () => {
+    isCancelled = true;
+    if (internalUnsub) internalUnsub();
+  };
 }
 
 export async function deleteInboxMessages(ids) {
