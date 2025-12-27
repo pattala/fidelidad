@@ -2,8 +2,11 @@
 
 import * as Data from './data.js';
 import { handlePermissionRequest, handlePermissionSwitch } from './notifications.js';
+import { auth, db } from './firebase.js'; // FIX: Imports necesarios
 
-// --- Estado del carrusel ---
+// ... (Resto del estado) ... 
+
+
 let carouselIntervalId = null;
 let isDragging = false, startX, startScrollLeft;
 
@@ -647,38 +650,35 @@ export function showConfirmModal(title, msg) {
 // ─────────────────────────────────────────────────────────────
 // Badge de Notificaciones
 // ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// Badge de Notificaciones
+// ─────────────────────────────────────────────────────────────
 export async function checkUnreadMessages() {
   try {
     const btn = document.getElementById('btn-notifs');
     if (!btn) return;
 
-    const uid = firebase.auth().currentUser?.uid;
+    const uid = auth.currentUser?.uid;
     if (!uid) return;
 
-    // Buscar ID real
     let clienteId = uid;
     try { if (Data?.getClienteDocIdPorUID) clienteId = await Data.getClienteDocIdPorUID(uid) || uid; } catch { }
 
-    // Chequeo completo: contar cuántos hay
-    const snap = await firebase.firestore()
-      .collection('clientes')
+    const snap = await db.collection('clientes')
       .doc(clienteId)
       .collection('inbox')
       .where('read', '==', false)
-      .limit(50) // Límite razonable para contador
+      .limit(50)
       .get();
 
     const count = snap.size;
     const badge = document.getElementById('notif-badge');
 
-    // Limpiar clases legacy
     btn.classList.remove('has-unread', 'blink-active');
 
     if (count > 0) {
-      // NUEVO: Parpadeo agresivo
       btn.classList.add('blink-active');
-
-      // Activar contador si existe elemento visual
       if (badge) {
         badge.textContent = count > 9 ? '9+' : String(count);
         badge.style.display = 'inline-block';
@@ -691,13 +691,9 @@ export async function checkUnreadMessages() {
 
 // Wire up global events
 document.addEventListener('rampet:notification-received', () => {
-  // Cuando llega push, re-check badge
   checkUnreadMessages();
 });
-
-// Listener carga inicial
 document.addEventListener('DOMContentLoaded', () => {
-  // delay pequeño para auth
   setTimeout(checkUnreadMessages, 3000);
 });
 
@@ -712,7 +708,6 @@ export async function openInboxModal() {
   modal.style.display = 'flex';
   container.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">Cargando mensajes...</p>';
 
-  // Al abrir, quitamos badge visualmente
   const btnNotifs = document.getElementById('btn-notifs');
   const badge = document.getElementById('notif-badge');
 
@@ -725,13 +720,12 @@ export async function openInboxModal() {
   } catch (e) { console.warn('Inbox limit check fail', e); }
 
   // -- Toolbar de Selección Múltiple --
-  // Insertar toolbar si no existe (o resetearlo)
   let toolbar = document.getElementById('inbox-toolbar-custom');
   if (!toolbar) {
     toolbar = document.createElement('div');
     toolbar.id = 'inbox-toolbar-custom';
     toolbar.className = 'inbox-toolbar';
-    toolbar.style.display = 'none'; // Oculto hasta que cargue
+    toolbar.style.display = 'none';
 
     toolbar.innerHTML = `
         <div style="display:flex; align-items:center; gap:8px;">
@@ -742,16 +736,13 @@ export async function openInboxModal() {
           Borrar Seleccionados
         </button>
       `;
-    // Insertar antes del contenedor de items
     container.parentElement.insertBefore(toolbar, container);
   }
 
-  // Lógica Toolbar
   const checkAll = document.getElementById('inbox-select-all');
   const btnDelete = document.getElementById('inbox-delete-selected');
   if (checkAll) checkAll.checked = false;
 
-  // Función para actualizar estado del botón borrar
   const updateDeleteBtn = () => {
     const selected = container.querySelectorAll('.inbox-select-check:checked');
     const count = selected.length;
@@ -759,7 +750,6 @@ export async function openInboxModal() {
     btnDelete.style.pointerEvents = count > 0 ? 'auto' : 'none';
     btnDelete.textContent = count > 0 ? `Borrar (${count})` : 'Borrar Seleccionados';
 
-    // Update checkAll state
     const allChecks = container.querySelectorAll('.inbox-select-check');
     if (allChecks.length > 0 && selected.length === allChecks.length) checkAll.checked = true;
     else checkAll.checked = false;
@@ -779,12 +769,12 @@ export async function openInboxModal() {
 
     const ok = await showConfirmModal('Borrar Mensajes', `¿Eliminar ${selected.length} mensajes seleccionados?`);
     if (ok) {
-      const ids = selected.map(el => el.value); // Value es ID
+      const ids = selected.map(el => el.value);
       try {
         container.innerHTML = '<p style="text-align:center; color:#999;">Borrando...</p>';
         await Data.deleteInboxMessages(ids);
         showToast('Mensajes eliminados', 'success');
-        openInboxModal(); // Recargar
+        openInboxModal();
       } catch (e) {
         console.error(e);
         showToast('Error al borrar', 'error');
@@ -793,22 +783,14 @@ export async function openInboxModal() {
     }
   };
 
-
   try {
-    const user = firebase.auth().currentUser;
+    const user = auth.currentUser;
     if (!user) {
       container.innerHTML = '<p style="text-align:center; margin-top:20px;">Debes iniciar sesión.</p>';
       return;
     }
 
-    let clienteId = user.uid;
-    try {
-      if (Data && Data.getClienteDocIdPorUID) {
-        clienteId = await Data.getClienteDocIdPorUID(user.uid) || user.uid;
-      }
-    } catch { }
-
-    const msgs = await Data.getInboxMessages(50); // Usamos Data layer
+    const msgs = await Data.getInboxMessages(50);
 
     if (!msgs || msgs.length === 0) {
       container.innerHTML = `
@@ -842,10 +824,6 @@ export async function openInboxModal() {
         icon = '🎁'; iconBg = '#f3e5f5';
       } else if (titleLower.includes('puntos')) {
         icon = '🛍️'; iconBg = '#e8f5e9';
-      } else if (titleLower.includes('promo') || titleLower.includes('descuento')) {
-        icon = '🔥'; iconBg = '#fff3e0'; // Naranja claro
-      } else if (d.tipo === 'system' || titleLower.includes('sistema') || titleLower.includes('bienvenid')) {
-        icon = '⚙️'; iconBg = '#eceff1'; // Gris
       }
 
       const item = document.createElement('div');
@@ -863,51 +841,32 @@ export async function openInboxModal() {
             ${d.titulo || 'Mensaje'}
             ${!d.read ? '<span class="chip-destacado">Nuevo</span>' : ''}
           </div>
-          <p style="margin:0; font-size:0.9rem; color:#555; line-height:1.4;">${d.cuerpo || ''}</p>
+          <div class="inbox-body">${d.cuerpo || ''}</div>
+          <small class="inbox-date">${dateStr}</small>
         </div>
-        <button class="delete-msg-btn" style="
-          position: absolute; right: 10px; top: 12px;
-          border: none; background: transparent; 
-          color: #bbb; cursor: pointer; padding: 4px;">
-          ✕
-        </button>
       `;
 
-      // Wire delete button
-      item.querySelector('.delete-msg-btn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        // Uso del modal custom
-        const ok = await showConfirmModal('Eliminar mensaje', '¿Estás seguro que querés borrar este mensaje?');
-        if (ok) {
-          try {
-            item.style.opacity = '0.5';
-            await Data.deleteInboxItem(id);
-            item.remove();
-            // Si queda vacío
-            if (!container.querySelector('.inbox-item')) {
-              openInboxModal(); // refrescar empty state
-            }
-          } catch (err) {
-            console.error(err);
-            item.style.opacity = '1';
-            showToast('Error al eliminar', 'error');
-          }
+      item.onclick = async (e) => {
+        if (e.target.classList && e.target.classList.contains('inbox-select-check')) return;
+
+        try { await Data.markInboxAsRead(d.id); } catch { }
+
+        if (d.url && d.url !== '#') {
+          location.href = d.url;
+        } else if (d.click_action) {
+          location.href = d.click_action;
         }
-      });
+        document.getElementById('inbox-modal').style.display = 'none';
+      };
+
+      item.querySelector('.inbox-select-check').addEventListener('change', updateDeleteBtn);
 
       container.appendChild(item);
     });
 
-    // Marcar leídos silenciosamente (fire & forget)
-    if (unreadIds.length > 0) {
-      const batch = firebase.firestore().batch();
-      unreadIds.forEach(ref => batch.update(ref, { read: true }));
-      batch.commit().catch(() => { });
-    }
-
   } catch (err) {
-    console.warn('[Inbox] Error cargando mensajes:', err);
-    container.innerHTML = '<p style="text-align:center; color:#d33; margin-top:20px;">Error al cargar mensajes.</p>';
+    console.error('[UI] Inbox load error:', err);
+    container.innerHTML = '<p style="text-align:center; color:#999;">Error al cargar mensajes.</p>';
   }
 }
 
