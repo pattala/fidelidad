@@ -532,9 +532,18 @@ export async function getInboxMessages(limitCnt = 50) {
   return snap.docs.map(d => ({ ...d.data(), id: d.id, ref: d.ref }));
 }
 
-// FIX: Accept uid explicitly to avoid 'auth' undefined race conditions
-export function subscribeToUnreadInbox(uid, callback) {
-  if (!uid) return () => { };
+// FIX: Hybrid signature (uid, callback) OR (callback) for backward compatibility
+export function subscribeToUnreadInbox(uidOrCb, cb) {
+  let uid = uidOrCb;
+  let callback = cb;
+
+  // Legacy mode check: if first arg is function, user/cache sent (callback)
+  if (typeof uidOrCb === 'function') {
+    callback = uidOrCb;
+    uid = Auth.getCurrentUser()?.uid;
+  }
+
+  if (!uid || typeof callback !== 'function') return () => { };
 
   let internalUnsub = null;
   let isCancelled = false;
@@ -544,14 +553,16 @@ export function subscribeToUnreadInbox(uid, callback) {
     const q = db.collection('clientes').doc(cid).collection('inbox').where('read', '==', false);
     internalUnsub = q.onSnapshot(snap => {
       // Pass full snap to allow UI to access docs (for Welcome Modal) and changes
-      callback(snap);
+      if (typeof callback === 'function') callback(snap);
     }, err => console.warn('[Data] Inbox listen error', err));
   });
+}, err => console.warn('[Data] Inbox listen error', err));
+  });
 
-  return () => {
-    isCancelled = true;
-    if (internalUnsub) internalUnsub();
-  };
+return () => {
+  isCancelled = true;
+  if (internalUnsub) internalUnsub();
+};
 }
 
 export async function deleteInboxMessages(ids) {
