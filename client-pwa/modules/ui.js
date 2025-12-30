@@ -147,7 +147,6 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
         btn.parentNode.replaceChild(newBtn, btn);
         newBtn.addEventListener('click', () => {
           openProfileModal();
-          // Scroll to address section logic inside modal if needed
         });
       }
     } else {
@@ -189,6 +188,100 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   if (!opts.suppressNavigation) {
     showScreen('main-app-screen');
   }
+}
+
+// NUEVO: Modal de Bienvenida Forzado
+function showWelcomeModal(title, body) {
+  // Usamos el confirm modal genérico pero con un solo botón "Entendido"
+  // O creamos uno ad-hoc si showConfirmModal tiene 2. 
+  // Por rapidez, inyectamos un modal simple o reusamos confirm con 1 solo boton.
+
+  // Hack: Reusar confirm modal escondiendo el boton Cancelar
+  const m = document.getElementById('confirm-modal');
+  if (!m) return alert(`${title}\n\n${body}`);
+
+  const t = document.getElementById('confirm-title');
+  const b = document.getElementById('confirm-message');
+  const btnYs = document.getElementById('confirm-btn-ok');
+  const btnNo = document.getElementById('confirm-btn-cancel');
+
+  if (t) t.textContent = title || '¡Bienvenido!';
+  if (b) b.textContent = body || '';
+
+  if (btnYs) {
+    btnYs.textContent = '¡Gracias!';
+    const newYs = btnYs.cloneNode(true);
+    btnYs.parentNode.replaceChild(newYs, btnYs);
+    newYs.onclick = () => {
+      m.style.display = 'none';
+      if (btnNo) btnNo.style.display = 'initial'; // Restore
+    };
+  }
+  if (btnNo) btnNo.style.display = 'none'; // Hide Cancel
+
+  m.style.display = 'flex';
+}
+
+// ... existing code ...
+
+// -- LOGICA NOTIFICACIONES (REALTIME) --
+if (!unsubscribeInbox) {
+  let _firstLoad = true;
+  unsubscribeInbox = Data.subscribeToUnreadInbox((snap) => {
+    const count = snap.size;
+    const changes = snap.docChanges();
+
+    // 1. SIEMPRE Actualizar Badge (Corrección clave)
+    const btn = document.getElementById('btn-notifs');
+    const badge = document.getElementById('notif-badge');
+    if (btn) {
+      if (count > 0) {
+        btn.classList.add('blink-active');
+        if (badge) {
+          badge.textContent = count > 9 ? '9+' : String(count);
+          badge.style.display = 'inline-block';
+        }
+      } else {
+        btn.classList.remove('blink-active');
+        if (badge) badge.style.display = 'none';
+      }
+    }
+
+    // 2. Manejo de Popups / Bienvenida
+    if (_firstLoad) {
+      // Buscar mensaje de bienvenida NO visto en localstorage
+      const welcomeKey = 'welcome_modal_seen_' + (auth.currentUser?.uid || '');
+      const hasSeen = localStorage.getItem(welcomeKey);
+
+      if (!hasSeen) {
+        const welcomeMsg = snap.docs.find(d => {
+          const t = (d.data().title || '').toLowerCase();
+          return t.includes('bienvenida') || t.includes('bienvenido');
+        });
+
+        if (welcomeMsg) {
+          const d = welcomeMsg.data();
+          showWelcomeModal(d.title, d.body);
+          localStorage.setItem(welcomeKey, 'true');
+        }
+      }
+
+      _firstLoad = false;
+      return;
+    }
+
+    // 3. Realtime Toasts (para mensajes nuevos MIENTRAS usas la app)
+    if (changes && Array.isArray(changes)) {
+      changes.forEach(change => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          const title = data.title || 'Nuevo Mensaje';
+          showToast(`📩 ${title}`, 'info', 5000);
+          if (navigator.vibrate) try { navigator.vibrate(200); } catch { }
+        }
+      });
+    }
+  });
 }
 
 export function openTermsModal(showAcceptButton) {
