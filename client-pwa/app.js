@@ -127,25 +127,50 @@ function renderInboxList(items) {
   const list = document.getElementById('inbox-list');
   const empty = document.getElementById('inbox-empty');
   if (!list || !empty) return;
+
+  // Ordenar: No leídos arriba
+  items.sort((a, b) => {
+    if (a.read === b.read) return (b.sentAt?.seconds || 0) - (a.sentAt?.seconds || 0);
+    return a.read ? 1 : -1;
+  });
+
   const data = items.filter(itemMatchesFilter);
   empty.style.display = data.length ? 'none' : 'block';
   if (!data.length) { list.innerHTML = ''; return; }
+
   list.innerHTML = data.map(it => {
     const sentAt = it.sentAt ? (it.sentAt.toDate ? it.sentAt.toDate() : new Date(it.sentAt)) : null;
     const dateTxt = sentAt ? sentAt.toLocaleString() : '';
-    const destacado = !!it.destacado;
+    const isRead = !!it.read;
+    const isDestacado = !!it.destacado;
+
+    // Style: Si no leído, negrita o fondo distinto
+    const bgStyle = isRead ? 'background:#fff;' : 'background:#f0f8ff; border-left: 4px solid #007bff;';
+    const titleWeight = isRead ? '400' : '700';
+
     return `
-      <div class="card inbox-item ${destacado ? 'destacado' : ''}" data-id="${it.id}" tabindex="0" role="button" aria-pressed="${destacado}">
+      <div class="card inbox-item" data-id="${it.id}" style="${bgStyle} cursor:pointer; transition:all 0.2s;">
         <div class="inbox-item-row" style="display:flex; justify-content:space-between; align-items:start; gap:10px;">
           <div class="inbox-main" style="flex:1 1 auto;">
-            <div class="inbox-title" style="font-weight:700;">
-              ${it.title || 'Mensaje'} ${destacado ? '<span class="chip-destacado" aria-label="Destacado" style="margin-left:6px; font-size:12px; background:#fff3cd; color:#8a6d3b; padding:2px 6px; border-radius:999px; border:1px solid #f5e3a3;">Destacado</span>' : ''}
+            <div class="inbox-header-line" style="display:flex; justify-content:space-between; align-items:center;">
+               <div class="inbox-title" style="font-weight:${titleWeight}; font-size:1rem;">
+                 ${it.title || 'Mensaje'} 
+                 ${isDestacado ? '⭐' : ''}
+               </div>
+               <div class="inbox-date" style="color:#999; font-size:11px;">${dateTxt}</div>
             </div>
-            <div class="inbox-body" style="color:#555; margin-top:6px;">${it.body || ''}</div>
-            <div class="inbox-date" style="color:#999; font-size:12px; margin-top:8px;">${dateTxt}</div>
+            
+            <!-- Body oculto por defecto (o truncado). Aquí lo haremos expandible. -->
+            <div class="inbox-body-preview" style="color:#666; font-size:0.9rem; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">
+              ${(it.body || '').substring(0, 50)}${(it.body || '').length > 50 ? '...' : ''}
+            </div>
+            <div class="inbox-body-full" style="display:none; color:#333; margin-top:8px; line-height:1.5; border-top:1px solid #eee; padding-top:8px;">
+              ${it.body || ''}
+            </div>
+
           </div>
-          <div class="inbox-actions" style="display:flex; gap:6px;">
-            <button class="secondary-btn inbox-delete" title="Borrar" aria-label="Borrar este mensaje">🗑️</button>
+          <div class="inbox-actions" style="display:flex; flex-direction:column; gap:8px;">
+            <button class="icon-btn inbox-delete" title="Borrar" style="opacity:0.5;">🗑️</button>
           </div>
         </div>
       </div>
@@ -153,23 +178,46 @@ function renderInboxList(items) {
   }).join('');
 
   list.querySelectorAll('.inbox-item').forEach(card => {
-    const id = card.getAttribute('data-id');
-    const toggle = async () => {
-      try {
-        const clienteRef = await resolveClienteRef();
-        const cur = inboxLastSnapshot.find(x => x.id === id);
-        const next = !(cur && cur.destacado === true);
-        await clienteRef.collection('inbox').doc(id).set(
-          next ? { destacado: true, destacadoAt: new Date().toISOString() } : { destacado: false },
-          { merge: true }
-        );
-        await fetchInboxBatchUnified();
-      } catch (err) {
-        console.warn('[INBOX] toggle destacado error:', err?.message || err);
+    card.onclick = async (e) => {
+      // Ignorar si click en delete
+      if (e.target.closest('.inbox-delete')) return;
+
+      const id = card.getAttribute('data-id');
+      const item = inboxLastSnapshot.find(x => x.id === id);
+
+      // 1. Expandir UI
+      const preview = card.querySelector('.inbox-body-preview');
+      const full = card.querySelector('.inbox-body-full');
+
+      const isExpanded = full.style.display === 'block';
+      if (isExpanded) {
+        full.style.display = 'none';
+        preview.style.display = 'block';
+      } else {
+        full.style.display = 'block';
+        preview.style.display = 'none';
+
+        // 2. Marcar como leído si no lo estaba
+        if (item && !item.read) {
+          item.read = true; // Optimistic update
+          // Update UI visual "read" state instantly
+          card.style.background = '#fff';
+          card.style.borderLeft = 'none';
+          const t = card.querySelector('.inbox-title');
+          if (t) t.style.fontWeight = '400';
+
+          try {
+            // DB Update
+            const clienteRef = await resolveClienteRef();
+            await clienteRef.collection('inbox').doc(id).update({
+              read: true,
+              readAt: new Date().toISOString()
+            });
+            // Badge logic depends on listener, which will fire automatically and reduce count
+          } catch (err) { console.warn('Read update fail', err); }
+        }
       }
     };
-    card.addEventListener('click', async (e) => { if ((e.target instanceof HTMLElement) && e.target.closest('.inbox-actions')) return; await toggle(); });
-    card.addEventListener('keydown', async (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); await toggle(); } });
   });
 
   list.querySelectorAll('.inbox-delete').forEach(btn => {
@@ -178,13 +226,15 @@ function renderInboxList(items) {
       const card = btn.closest('.inbox-item');
       const id = card?.getAttribute('data-id');
       if (!id) return;
+      if (!confirm('¿Borrar mensaje?')) return;
+
+      card.remove(); // Optimistic remove
       try {
         const clienteRef = await resolveClienteRef();
         await clienteRef.collection('inbox').doc(id).delete();
       } catch (err) {
         console.warn('[INBOX] borrar error:', err?.message || err);
       }
-      await fetchInboxBatchUnified();
     });
   });
 }
@@ -532,6 +582,18 @@ function setupMainAppScreenListeners() {
 
   // Notificaciones UI
   on('btn-notifs', 'click', async () => { try { await openInboxModal(); } catch { } try { await handleBellClick(); } catch { } });
+
+  // Listener GLOBAL para ocultar banner de domicilio cuando se completa
+  document.addEventListener('rampet:address:dismissed', () => {
+    const banner = document.getElementById('mission-address-card');
+    if (banner) banner.style.display = 'none';
+    const addressCard = document.getElementById('address-card'); // También cerramos el form si está abierto
+    if (addressCard) {
+      addressCard.style.display = 'none';
+      const container = document.querySelector('.container') || document.body;
+      container.appendChild(addressCard); // Restaurar al main si estaba en modal
+    }
+  });
 
 }
 
@@ -919,36 +981,90 @@ async function main() {
       setupMainAppScreenListeners();
 
       // 🚀 ONBOARDING FLOW
-      const notifState = localStorage.getItem('notifState');
-      const perm = ('Notification' in window) ? Notification.permission : 'denied';
-
-      // Si se acaba de registrar (forzamos onboarding siempre)
       if (justSignedUp) {
+        // Pre-load module immediately (no await in click)
+        let NotifMod = null;
+        import('./modules/notifications.js').then(m => NotifMod = m).catch(console.warn);
 
         // Wiring exclusivo del onboarding
         const btnEnable = document.getElementById('btn-onboarding-enable');
         const btnSkip = document.getElementById('btn-onboarding-skip');
 
+        const step1 = document.getElementById('onboarding-step-1');
+        const step2 = document.getElementById('onboarding-step-2');
+        const btnGeoEnable = document.getElementById('btn-onboarding-geo-enable');
+        const btnGeoSkip = document.getElementById('btn-onboarding-geo-skip');
+
         const finishOnboarding = async () => {
-          // Intentar mostrar prompt domicilio si corresponde
-          try { await setupAddressSection(); } catch (e) { }
           localStorage.removeItem('justSignedUp');
           UI.showScreen('main-app-screen');
-          // Ahora sí inicializamos cosas del home
+          try { await setupAddressSection(); } catch (e) { }
           try { initNotificationsOnce(); } catch (e) { }
         };
 
-        if (btnEnable) btnEnable.onclick = async () => {
-          try {
-            // Import dinámico para asegurar módulo cargado
-            const Mod = await import('./modules/notifications.js');
-            await Mod.handlePermissionRequest();
-          } catch (e) { console.warn(e); }
-          finishOnboarding();
+        const goToStep2 = () => {
+          if (step1) step1.style.display = 'none';
+          if (step2) step2.style.display = 'block';
+          if (!step2) finishOnboarding();
         };
 
+        // PASO 1: NOTIFS
+        if (btnEnable) btnEnable.onclick = async () => {
+          console.log('[Onboarding] Click Notif Enable');
+          try {
+            const m = NotifMod || await import('./modules/notifications.js');
+            // Must be awaited inside user gesture
+            await m.handlePermissionRequest();
+          } catch (e) {
+            console.error('[Onboarding] Notif Error:', e);
+            alert('Error al pedir permisos. Continua al siguiente paso.');
+          }
+          goToStep2();
+        };
         if (btnSkip) btnSkip.onclick = () => {
-          try { localStorage.setItem('notifState', 'deferred'); } catch (e) { }
+          console.log('[Onboarding] Skip Notif');
+          localStorage.setItem('notifState', 'deferred');
+          goToStep2();
+        };
+
+        // PASO 2: GEO
+        if (btnGeoEnable) btnGeoEnable.onclick = () => {
+          console.log('[Onboarding] Click Geo Enable');
+          // Direct Browser Call (No Wrappers to lose context)
+          if (!navigator.geolocation) {
+            alert('Tu dispositivo no soporta geolocalización.');
+            finishOnboarding();
+            return;
+          }
+
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              console.log('[Onboarding] Geo Success', pos);
+              localStorage.setItem('geoState', 'active');
+              toast('✅ Ubicación Activada', 'success');
+
+              // Sync Fire-and-forget
+              const db = firebase.firestore();
+              db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
+                if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
+              });
+
+              finishOnboarding();
+            },
+            (err) => {
+              console.warn('[Onboarding] Geo Error/Deny', err);
+              if (err.code === 1) {
+                localStorage.setItem('geoState', 'blocked');
+                alert('Has bloqueado la ubicación. Podrás activarla luego en tu perfil.');
+              }
+              finishOnboarding();
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          );
+        };
+
+        if (btnGeoSkip) btnGeoSkip.onclick = () => {
+          console.log('[Onboarding] Skip Geo');
           finishOnboarding();
         };
 

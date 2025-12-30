@@ -303,31 +303,65 @@
 
     <!-- ONBOARDING (Post-Registro) -->
     <div id="onboarding-screen" class="screen" style="text-align:center; padding-top:40px;">
-      <div style="font-size:48px; margin-bottom:20px;">🚀</div>
-      <h2>¡Activá tus beneficios!</h2>
-      <p style="color:#666; max-width:280px; margin:0 auto 30px;">
-        Para avisarte cuando sumes puntos o tengas premios disponibles, necesitamos enviarte notificaciones.
-      </p>
 
-      <div class="card" style="border:none; background:transparent; box-shadow:none;">
-        <ul style="text-align:left; display:inline-block; color:#555; line-height:1.8;">
-          <li>💰 <strong>Puntos al instante</strong></li>
-          <li>🔥 <strong>Ofertas flash</strong></li>
-          <li>🎁 <strong>Premios exclusivos</strong></li>
-        </ul>
+      <!-- STEP 1: NOTIFICACIONES -->
+      <div id="onboarding-step-1">
+        <div style="font-size:48px; margin-bottom:20px;">🚀</div>
+        <h2>¡Activá tus beneficios!</h2>
+        <p style="color:#666; max-width:280px; margin:0 auto 30px;">
+          Para avisarte cuando sumes puntos o tengas premios disponibles, necesitamos enviarte notificaciones.
+        </p>
+
+        <div class="card" style="border:none; background:transparent; box-shadow:none;">
+          <ul style="text-align:left; display:inline-block; color:#555; line-height:1.8;">
+            <li>💰 <strong>Puntos al instante</strong></li>
+            <li>🔥 <strong>Ofertas flash</strong></li>
+            <li>🎁 <strong>Premios exclusivos</strong></li>
+          </ul>
+        </div>
+
+        <div class="actions" style="margin-top:40px;">
+          <button id="btn-onboarding-enable" class="primary-btn"
+            style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
+            Sí, activar notificaciones
+          </button>
+          <br>
+          <button id="btn-onboarding-skip" class="secondary-btn"
+            style="margin-top:16px; border:none; background:transparent; color:#999;">
+            Ahora no, gracias
+          </button>
+        </div>
       </div>
 
-      <div class="actions" style="margin-top:40px;">
-        <button id="btn-onboarding-enable" class="primary-btn"
-          style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
-          Sí, activar notificaciones
-        </button>
-        <br>
-        <button id="btn-onboarding-skip" class="secondary-btn"
-          style="margin-top:16px; border:none; background:transparent; color:#999;">
-          Ahora no, gracias
-        </button>
+      <!-- STEP 2: GEO (Oculto inicial) -->
+      <div id="onboarding-step-2" style="display:none;">
+        <div style="font-size:48px; margin-bottom:20px;">📍</div>
+        <h2>Beneficios en tu Zona</h2>
+        <p style="color:#666; max-width:280px; margin:0 auto 30px;">
+          Si activás tu ubicación, te avisaremos cuando pases cerca de locales con promociones exclusivas.
+        </p>
+
+        <div class="card" style="border:none; background:transparent; box-shadow:none;">
+          <ul style="text-align:left; display:inline-block; color:#555; line-height:1.8;">
+            <li>📌 <strong>Alertas por cercanía</strong></li>
+            <li>🗺️ <strong>Promos locales</strong></li>
+            <li>🚶 <strong>Check-in automático</strong></li>
+          </ul>
+        </div>
+
+        <div class="actions" style="margin-top:40px;">
+          <button id="btn-onboarding-geo-enable" class="primary-btn"
+            style="width:100%; max-width:300px; padding:14px; font-size:1.1rem;">
+            Activar Ubicación
+          </button>
+          <br>
+          <button id="btn-onboarding-geo-skip" class="secondary-btn"
+            style="margin-top:16px; border:none; background:transparent; color:#999;">
+            Omitir este paso
+          </button>
+        </div>
       </div>
+
     </div>
 
     <!-- APP -->
@@ -501,7 +535,7 @@
 
 
 
-      <div id="install-prompt-card" class="card" style="display:none;">
+      <div i)d="install-prompt-card" class="card" style="display:none;">
         <h3>📲 ¡Lleva el Club Contigo!</h3>
         <p>Instala la aplicación para acceso más rápido a tus puntos y beneficios.</p>
         <div class="prompt-actions">
