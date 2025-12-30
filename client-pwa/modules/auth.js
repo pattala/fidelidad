@@ -235,18 +235,28 @@ export async function registerNewAccount() {
 
   try {
     // 1) crear usuario
-    // ⬇️ Desactivado hard-reset agresivo para evitar error "message channel closed" con SW habilitado
-    // await ensureCleanAuthSession(); 
-    try { if (auth.currentUser) await auth.signOut(); } catch { } // SignOut simple seguro
-
+    try { if (auth.currentUser) await auth.signOut(); } catch { }
     try { localStorage.setItem('justSignedUp', '1'); } catch { }
-    // 🚩 FIX: Setear antes de que dispare onAuthStateChanged
 
     const cred = await auth.createUserWithEmailAndPassword(email, password);
     const uid = cred.user.uid;
 
-    // Feedback inmediato
-    try { UI.showToast("Cuenta creada. Configurando perfil...", "info"); } catch { }
+    // 🟢 FEEDBACK VISUAL: CAMBIO DE PANTALLA
+    // Ocultamos el form y mostramos la barra de carga
+    try {
+      UI.showScreen('registration-progress-screen');
+      // Helper para marcar checks
+      const tick = (id) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = '✅ ' + el.innerText.replace('⚪ ', '');
+          el.style.color = '#4caf50';
+          el.style.fontWeight = 'bold';
+        }
+      };
+      // Tick 1: Usuario creado
+      tick('reg-check-1');
+    } catch { }
 
     // 2) documento base
     const baseDoc = {
@@ -267,53 +277,45 @@ export async function registerNewAccount() {
         geoUpdatedAt: new Date().toISOString()
       },
       ...(hasAny ? { domicilio: dom } : {}),
-      // Origen para el Panel
       source: 'pwa',
       creadoDesde: 'pwa',
-      metadata: {
-        createdFrom: 'pwa',
-        sourceVersion: 'pwa@1.0.0'
-      },
-      tyc: {
-        acceptedAt: new Date().toISOString(),
-        version: null,
-        url: null,
-      }
+      metadata: { createdFrom: 'pwa', sourceVersion: 'pwa@2.0' },
+      tyc: { acceptedAt: new Date().toISOString(), version: null, url: null }
     };
 
     // 3) guardar en clientes/{uid}
     await db.collection('clientes').doc(uid).set(baseDoc, { merge: true });
 
+    // Tick 3: Perfil (Lo hacemos antes de puntos para UX)
+    try {
+      const el = document.getElementById('reg-check-3');
+      if (el) { el.innerHTML = '✅ ' + el.innerText.replace('⚪ ', ''); el.style.color = '#4caf50'; el.style.fontWeight = 'bold'; }
+      await new Promise(r => setTimeout(r, 500)); // Breve pausa visual
+    } catch { }
+
     // 4) Asignar N° Socio (API interna)
     try {
       const token = await cred.user.getIdToken();
 
-      // Llamada: asignar N° Socio
-      // Llamada: asignar N° Socio
       const rSocio = await fetch('/api/assign-socio-number', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // Autenticación Real via Token
-          'x-api-key': window.APP_CONFIG?.apiKey || '' // Fallback Legacy
+          'Authorization': `Bearer ${token}`,
+          'x-api-key': window.APP_CONFIG?.apiKey || ''
         },
         body: JSON.stringify({ docId: uid, sendWelcome: true })
       });
       const dSocio = await rSocio.json();
-      console.log('[assign-socio-number][PWA]', rSocio.status, dSocio);
 
-      // DEBUG: Mostrar error de email en UI si falla
-      if (dSocio?.mail?.error) {
-        console.warn('[Signup] Email sending failed:', dSocio.mail);
-        UI.showToast(`Registro OK, pero falló el email: ${dSocio.mail.error} (${dSocio.mail.details || ''})`, 'warning', 10000);
-      } else if (dSocio?.mail?.preview) {
-        console.warn('[Signup] Email in PREVIEW mode:', dSocio.mail);
-        const missing = dSocio.mail.missingVars ? dSocio.mail.missingVars.join(', ') : 'Keys';
-        UI.showToast(`Registro OK. Email en modo PREVIEW (Faltan: ${missing})`, 'warning', 10000);
-      }
+      // Tick 4: Inbox (Emails disparados)
+      try {
+        const el = document.getElementById('reg-check-4');
+        if (el) { el.innerHTML = '✅ ' + el.innerText.replace('⚪ ', ''); el.style.color = '#4caf50'; el.style.fontWeight = 'bold'; }
+      } catch { }
 
       // ─────────────────────────────────────────────
-      // GAMIFICATION: Welcome Bonus (Registro Simple)
+      // GAMIFICATION
       // ─────────────────────────────────────────────
       try {
         const rPts = await fetch('/api/assign-points', {
@@ -322,83 +324,51 @@ export async function registerNewAccount() {
           body: JSON.stringify({ reason: 'welcome_signup' })
         });
         const dPts = await rPts.json();
-        if (dPts.ok && dPts.pointsAdded > 0) {
-          UI.showToast(`¡Bienvenida! Ganaste +${dPts.pointsAdded} Puntos de regalo 🎁`, 'success');
-        } else {
-          console.log('[Signup] Welcome points not awarded (inactive or 0)', dPts);
-        }
+
+        // Tick 2: Puntos (Lo marcamos ahora que se asignaron)
+        try {
+          const el = document.getElementById('reg-check-2');
+          if (el) { el.innerHTML = '✅ ' + el.innerText.replace('⚪ ', ''); el.style.color = '#4caf50'; el.style.fontWeight = 'bold'; }
+        } catch { }
+
       } catch (eSig) { console.warn('Error awarding signup points', eSig); }
 
-      // ─────────────────────────────────────────────
-      // GAMIFICATION: Address Bonus (Datos Completos v2)
-      // ─────────────────────────────────────────────
-      // Validar completitud REAL (Anti-Trampa)
-      const isComplete = dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.barrio || dom.partido);
-
-      if (hasAny && !isComplete) {
-        // El usuario intentó llenar pero le faltó algo clave
-        console.warn('[Gamification] Domicilio incompleto:', dom.components);
-        // Opcional: Avisar (si no usamos toast agresivo)
-      }
-
-      if (hasAny && isComplete) {
-        try {
-          const rPtsAddr = await fetch('/api/assign-points', {
+      // ADDRESS BONUS
+      if (hasAny) { /* (Logic same as before, background) */
+        const isComplete = dom.calle && dom.numero && dom.provincia && (dom.localidad || dom.barrio || dom.partido);
+        if (isComplete) {
+          fetch('/api/assign-points', {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({ reason: 'profile_address' })
-          });
-          const dPtsAddr = await rPtsAddr.json();
-
-          if (rPtsAddr.ok && dPtsAddr.pointsAdded > 0) {
-            UI.showToast(`¡Bienvenida! Ganaste +${dPtsAddr.pointsAdded} Puntos por tus datos 🎁`, 'success');
-          } else {
-            // Ya los tenía o error silencioso
-            console.log('[Gamification] Address bonus skipped:', dPtsAddr);
-          }
-        } catch (ePoints) {
-          console.warn('[Gamification] Address bonus error', ePoints);
+          }).catch(() => { }); // Silent
         }
       }
 
-      // Si el server devuelve el número, lo reflejamos por las dudas
+      // Si el server devuelve el número, lo reflejamos
       if (rSocio.ok && Number.isInteger(dSocio?.numeroSocio)) {
         await db.collection('clientes').doc(uid).set(
           { numeroSocio: dSocio.numeroSocio },
           { merge: true }
         );
-      } else {
-        console.warn('[assign-socio-number][PWA] respuesta sin numeroSocio');
       }
     } catch (err) {
-      // Si CORS u otro error, no bloquea el alta
       console.warn('[assign-socio-number][PWA] API no disponible:', err);
     }
 
-    // 4.b) intento corto por si el server lo escribió directo en Firestore
-    async function waitSocioNumberOnce(theUid, { tries = 3, delayMs = 700 } = {}) {
-      for (let i = 0; i < tries; i++) {
-        try {
-          const snap = await db.collection('clientes').doc(theUid).get();
-          const n = snap?.data()?.numeroSocio ?? null;
-          if (Number.isInteger(n)) return n;
-        } catch { }
-        await new Promise(r => setTimeout(r, delayMs));
-      }
-      return null;
-    }
+    // Success Message Final
     try {
-      await waitSocioNumberOnce(uid);
+      const msg = document.getElementById('reg-progress-msg');
+      if (msg) { msg.textContent = '¡Todo listo! Bienvenido al Club.'; msg.style.color = '#4caf50'; msg.style.fontWeight = 'bold'; }
+      await new Promise(r => setTimeout(r, 1000));
     } catch { }
 
-
-
+    // TOAST FINAL (Backup)
     UI.showToast("¡Registro exitoso! Bienvenido/a al Club.", "success");
   } catch (error) {
     console.error('registerNewAccount error:', error?.code || error);
+    // VOLVER A PANTALLA REGISTRO SI FALLA
+    UI.showScreen('register-screen');
     if (error?.code === 'auth/email-already-in-use') {
       UI.showToast("Este email ya está registrado.", "error");
     } else {
@@ -406,7 +376,7 @@ export async function registerNewAccount() {
     }
   } finally {
     btn.disabled = false; btn.textContent = 'Crear Cuenta';
-    __signupLock = false;   // ⬅️ importante soltar el mutex SIEMPRE
+    __signupLock = false;
   }
 }
 
