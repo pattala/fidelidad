@@ -242,6 +242,9 @@ export async function obtenerYGuardarToken() {
    INIT LOGIC (Called from app.js)
    ──────────────────────────────────────────────────────────── */
 export async function initNotificationsOnce() {
+  if (window.__NOTIF_INIT_DONE) return;
+  window.__NOTIF_INIT_DONE = true;
+
   debugLog('Init', 'Arrancando módulo de notificaciones v2.0');
 
   // 1. Bind UI Buttons
@@ -264,6 +267,8 @@ export async function initNotificationsOnce() {
     } catch (e) {
       console.warn('[FCM] Falló sync silenciosa:', e);
     }
+    // FIX: Prompt Geo even if Notifs are already granted
+    checkAndPromptGeo();
   } else if (Notification.permission === 'denied') {
     debugLog('Init', 'Permiso denegado.');
     localStorage.setItem(LS_NOTIF_STATE, 'blocked');
@@ -275,6 +280,9 @@ export async function initNotificationsOnce() {
       // Primer uso: mostrar prompt
       show($('notif-prompt-card'), true);
       show($('notif-card'), false);
+    } else {
+      // Si ya decidieron notif (o está deferred), probamos Geo
+      checkAndPromptGeo();
     }
   }
 }
@@ -332,14 +340,211 @@ export async function handlePermissionSwitch(enabled) {
   }
 }
 
-// Stub para Geo (si UI lo llama y no existe, explotará también)
-export async function wireGeoButtonsOnce() { }
-export async function updateGeoUI() { }
+// 🆕 Geo Logic (Modal)
+export async function wireGeoButtonsOnce() {
+  // Hook up profile/switches if passed. For now, strict modal.
+}
+
+async function _requestGeo() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error('no_geo_support'));
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve(pos),
+      (err) => reject(err),
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+}
+
+// Called from init (or UI)
+export async function checkAndPromptGeo() {
+  // 1. Feature Flag
+  if (window.APP_CONFIG?.features?.geoEnabled === false) return;
+
+  // 2. Browser Check
+  if (!navigator.geolocation) return;
+
+  // 3. DB Check (Source of Truth) - Evitar prompt si ya está activo en Firestore
+  if (window.clienteData?.config?.geoEnabled === true) {
+    localStorage.setItem('geoState', 'active');
+    return;
+  }
+
+  // 4. Permission State
+  let state = 'prompt';
+  try {
+    const p = await navigator.permissions.query({ name: 'geolocation' });
+    state = p.state;
+  } catch (e) {
+    // Fallback?
+  }
+
+  // 4. Persistence Check
+  if (localStorage.getItem('geoState') === 'active') return;
+  if (state === 'granted') {
+    localStorage.setItem('geoState', 'active');
+    return;
+  }
+  if (state === 'denied') {
+    localStorage.setItem('geoState', 'blocked');
+    return;
+  }
+
+  // 5. Cooldown/Silence Logic (Simple: If not blocked, ASK)
+  // User asked for "Dialog" (Modal)
+
+  if (window.UI && window.UI.showConfirmModal) {
+    window.UI.showConfirmModal(
+      '📍 Beneficios Cerca',
+      'Para mostrarte promociones exclusivas cuando estés cerca de nuestras sucursales, necesitamos conocer tu ubicación. ¿Activar ahora?',
+      async () => {
+        // User clicked SI
+        toast('Solicitando permiso...', 'info');
+        try {
+          await _requestGeo(); // Browser Prompt
+          localStorage.setItem('geoState', 'active');
+          toast('¡Gracias! Geolocalización activa.', 'success');
+
+          // Sync to Firestore
+          const uid = firebase.auth().currentUser?.uid;
+          if (uid) {
+            const docId = await getClienteDocIdPorUID(uid);
+            if (docId) {
+              await firebase.firestore().collection('clientes').doc(docId).update({
+                'config.geoEnabled': true,
+                'config.geoUpdatedAt': new Date().toISOString()
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('Geo Denied/Error:', err);
+          if (err.code === 1) { // PERMISSION_DENIED
+            localStorage.setItem('geoState', 'blocked');
+            toast('Permiso denegado. Puedes activarlo en config.', 'warning');
+          } else {
+            toast('Error al obtener ubicación.', 'error');
+          }
+        }
+      },
+      () => {
+        // User clicked NO
+        console.log('User dismissed Geo Modal');
+        // Optional: Silence for X days?
+      }
+    );
+
+    // Change button text override (Hack for reusable modal)
+    setTimeout(() => {
+      const btnY = document.getElementById('confirm-btn-ok');
+      if (btnY) btnY.textContent = '¡Activar!';
+    }, 50);
+  }
+}
+
+export async function updateGeoUI() {
+  // Placeholder stub
+  checkAndPromptGeo();
+}
 export async function syncProfileConsentUI() { }
 export async function syncProfileGeoUI() { }
 
 export async function handleBellClick() {
   if (window.UI && window.UI.openInboxModal) {
     window.UI.openInboxModal();
+  }
+}
+
+// 🆕 Address Logic (moved from inline)
+export async function initDomicilioForm() {
+  const saveBtn = $('address-save');
+  const cancelBtn = $('address-cancel'); // Handled by UI.js logic mostly
+  const skipBtn = $('address-skip'); // "Ahora no"
+
+  if (saveBtn && !saveBtn._wiredLogic) {
+    saveBtn._wiredLogic = true;
+    saveBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      // 1. Collect Data
+      const get = (id) => document.getElementById(id)?.value?.trim() || '';
+      const calle = get('dom-calle');
+      const numero = get('dom-numero');
+      const piso = get('dom-piso');
+      const depto = get('dom-depto');
+      const provincia = get('dom-provincia');
+      const partido = get('dom-partido');
+      const localidad = get('dom-localidad');
+      const cp = get('dom-cp');
+      const pais = get('dom-pais') || 'Argentina';
+      const ref = get('dom-referencia');
+
+      // Validacion Minima
+      if (!calle || !numero || !provincia) {
+        return toast('Faltan datos obligatorios (Calle, Altura, Provincia)', 'error');
+      }
+
+      // 2. Build Objects
+      const seg1 = [calle, numero].filter(Boolean).join(' ');
+      const seg2 = [piso, depto].filter(Boolean).join(' ');
+      const seg3 = provincia === 'CABA'
+        ? [localidad, 'CABA'].filter(Boolean).join(', ')
+        : [localidad, partido, provincia].filter(Boolean).join(', ');
+      const seg4 = [cp, pais].filter(Boolean).join(', ');
+      const addressLine = [seg1, seg2, seg3, seg4].filter(Boolean).join(' — ');
+
+      const domData = {
+        addressLine,
+        status: 'COMPLETE', // Asumimos complete si guardan
+        components: {
+          calle, numero, piso, depto, provincia, partido, localidad, codigoPostal: cp, pais, referencia: ref,
+          barrio: provincia === 'CABA' ? localidad : ''
+        }
+      };
+
+      // 3. Save to Firestore
+      const btnTxt = saveBtn.textContent;
+      saveBtn.disabled = true; saveBtn.textContent = 'Guardando...';
+      try {
+        const uid = firebase.auth().currentUser?.uid;
+        if (!uid) throw new Error('No auth');
+        const docId = await getClienteDocIdPorUID(uid);
+        if (!docId) throw new Error('No doc');
+
+        await firebase.firestore().collection('clientes').doc(docId).update({
+          domicilio: domData,
+          'config.addressUpdatedAt': new Date().toISOString()
+        });
+
+        // 4. Assign Points (API)
+        try {
+          const token = await firebase.auth().currentUser.getIdToken();
+          const r = await fetch('/api/assign-points', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ reason: 'profile_address' })
+          });
+          const d = await r.json();
+          if (d.pointsAdded > 0) toast(`¡+${d.pointsAdded} Puntos Agregados!`, 'success');
+          else toast('Dirección guardada exitosamente.', 'success');
+
+        } catch {
+          toast('Dirección guardada.', 'success');
+        }
+
+        // 5. Update UI
+        // Dispatch event so UI.js updates profile card immediately
+        const event = new CustomEvent('rampet:address:dismissed');
+        document.dispatchEvent(event);
+
+        // Force reload global data or wait for storage sync?
+        // UI.js listens to onSnapshot, so it should update auto.
+
+      } catch (err) {
+        console.warn('Address Save Error:', err);
+        toast('Error al guardar dirección.', 'error');
+      } finally {
+        saveBtn.disabled = false; saveBtn.textContent = btnTxt;
+      }
+    });
   }
 } 
