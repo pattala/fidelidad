@@ -290,7 +290,7 @@ export async function registerNewAccount() {
     try {
       const el = document.getElementById('reg-check-3');
       if (el) { el.innerHTML = '✅ ' + el.innerText.replace('⚪ ', ''); el.style.color = '#4caf50'; el.style.fontWeight = 'bold'; }
-      await new Promise(r => setTimeout(r, 500)); // Breve pausa visual
+      await new Promise(r => setTimeout(r, 1500)); // ⏳ UX: 1.5s pausa visual
     } catch { }
 
     // 4) Asignar N° Socio (API interna)
@@ -312,6 +312,7 @@ export async function registerNewAccount() {
       try {
         const el = document.getElementById('reg-check-4');
         if (el) { el.innerHTML = '✅ ' + el.innerText.replace('⚪ ', ''); el.style.color = '#4caf50'; el.style.fontWeight = 'bold'; }
+        await new Promise(r => setTimeout(r, 1500)); // ⏳ UX: 1.5s
       } catch { }
 
       // ─────────────────────────────────────────────
@@ -329,6 +330,7 @@ export async function registerNewAccount() {
         try {
           const el = document.getElementById('reg-check-2');
           if (el) { el.innerHTML = '✅ ' + el.innerText.replace('⚪ ', ''); el.style.color = '#4caf50'; el.style.fontWeight = 'bold'; }
+          await new Promise(r => setTimeout(r, 1500)); // ⏳ UX: 1.5s
         } catch { }
 
       } catch (eSig) { console.warn('Error awarding signup points', eSig); }
