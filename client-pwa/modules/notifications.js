@@ -515,6 +515,11 @@ export async function initDomicilioForm() {
           'config.addressUpdatedAt': new Date().toISOString()
         });
 
+        // ⚡ OPTIMISTIC UPDATE (Critical for UI responsiveness)
+        if (window.clienteData) {
+          window.clienteData.domicilio = domData;
+        }
+
         // 4. Assign Points (API)
         try {
           const token = await firebase.auth().currentUser.getIdToken();

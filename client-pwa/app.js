@@ -149,28 +149,28 @@ function renderInboxList(items) {
     const titleWeight = isRead ? '400' : '700';
 
     return `
-      <div class="card inbox-item" data-id="${it.id}" style="${bgStyle} cursor:pointer; transition:all 0.2s;">
+      <div class="card inbox-item" data-id="${it.id}" style="${bgStyle} cursor:pointer; transition:all 0.2s; position:relative;">
         <div class="inbox-item-row" style="display:flex; justify-content:space-between; align-items:start; gap:10px;">
-          <div class="inbox-main" style="flex:1 1 auto;">
+          <div class="inbox-main" style="flex:1 1 auto; min-width:0;">
             <div class="inbox-header-line" style="display:flex; justify-content:space-between; align-items:center;">
-               <div class="inbox-title" style="font-weight:${titleWeight}; font-size:1rem;">
+               <div class="inbox-title" style="font-weight:${titleWeight}; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:85%;">
                  ${it.title || 'Mensaje'} 
                  ${isDestacado ? '⭐' : ''}
                </div>
-               <div class="inbox-date" style="color:#999; font-size:11px;">${dateTxt}</div>
+               <div class="inbox-date" style="color:#999; font-size:11px; flex-shrink:0;">${dateTxt}</div>
             </div>
             
-            <!-- Body oculto por defecto (o truncado). Aquí lo haremos expandible. -->
             <div class="inbox-body-preview" style="color:#666; font-size:0.9rem; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">
-              ${(it.body || '').substring(0, 50)}${(it.body || '').length > 50 ? '...' : ''}
+              ${(it.body || 'Sin contenido').substring(0, 60)}${(it.body || '').length > 60 ? '...' : ''}
             </div>
-            <div class="inbox-body-full" style="display:none; color:#333; margin-top:8px; line-height:1.5; border-top:1px solid #eee; padding-top:8px;">
-              ${it.body || ''}
+            
+            <div class="inbox-body-full" style="display:none; color:#333; margin-top:8px; line-height:1.4; border-top:1px solid #eee; padding-top:8px; white-space:pre-wrap;">
+              ${it.body || 'Sin contenido'}
             </div>
 
           </div>
           <div class="inbox-actions" style="display:flex; flex-direction:column; gap:8px;">
-            <button class="icon-btn inbox-delete" title="Borrar" style="opacity:0.5;">🗑️</button>
+            <button class="icon-btn inbox-delete" title="Borrar" style="opacity:0.5; background:none; border:none; font-size:1.2rem; cursor:pointer;">🗑️</button>
           </div>
         </div>
       </div>
