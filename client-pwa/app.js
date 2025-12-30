@@ -605,9 +605,44 @@ function setupMainAppScreenListeners() {
 
     // Update State for logic checks
     if (window.clienteData) {
-      // Mock complete para que checkMissionStatus no lo vuelva a abrir
       window.clienteData.domicilio = window.clienteData.domicilio || {};
       window.clienteData.domicilio.status = 'COMPLETE';
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // Botones del Banner Domicilio (Cableado Faltante)
+  // ─────────────────────────────────────────────────────────────
+  on('mission-address-btn', 'click', () => {
+    if (window.openProfileModal) window.openProfileModal();
+  });
+
+  on('mission-address-later', 'click', (e) => {
+    e.preventDefault();
+    const c = document.getElementById('mission-address-card');
+    if (c) c.style.display = 'none';
+    console.log('[Banner] Posponiendo "Completar Domicilio" por esta sesion');
+  });
+
+  on('mission-address-never', 'click', async (e) => {
+    e.preventDefault();
+    const c = document.getElementById('mission-address-card');
+    if (c) c.style.display = 'none';
+
+    console.log('[Banner] Descartando permanente "Completar Domicilio"');
+    try {
+      if (auth.currentUser && window.clienteData?.id) {
+        // Persistir "No me interesa" en Firestore para que no vuelva a molestar
+        await db.collection('clientes').doc(window.clienteData.id).update({
+          'config.addressPromptDismissed': true,
+          'config.notifUpdatedAt': new Date().toISOString()
+        });
+        // Update local optimista
+        if (window.clienteData.config) window.clienteData.config.addressPromptDismissed = true;
+        UI.showToast('Entendido. No te volveremos a preguntar.', 'info');
+      }
+    } catch (err) {
+      console.warn('[Banner] Error persistiendo descarte:', err);
     }
   });
 
