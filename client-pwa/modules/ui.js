@@ -587,12 +587,32 @@ function reorderProfileSections() {
   // Domicilio inmediatamente antes de Preferencias
   container.insertBefore(addressSection, prefsSection);
 
-  // Listener para ocultar banner de domicilio cuando se completa
+  // Listener GLOBAL para ocultar banner de domicilio cuando se completa
   document.addEventListener('rampet:address:dismissed', () => {
-    const banner = document.getElementById('mission-address-card');
-    if (banner) banner.style.display = 'none';
+    console.log('[UI] Address Dismissed Event Recibido');
+
+    // Fuerza bruta visual con !important
+    const missionCard = document.getElementById('mission-address-card');
+    if (missionCard) {
+      missionCard.setAttribute('style', 'display: none !important');
+    }
+
+    const addressCard = document.getElementById('address-card');
+    if (addressCard) {
+      addressCard.style.display = 'none';
+      const container = document.querySelector('.container') || document.body;
+      container.appendChild(addressCard);
+    }
+
+    // Limpiar slot de geo si hubiera
     const slot = document.getElementById('geo-context-slot');
-    if (slot) slot.innerHTML = ''; // Limpiar cualquier promt pendiente
+    if (slot) slot.innerHTML = '';
+
+    // Update State for logic checks
+    if (window.clienteData) {
+      window.clienteData.domicilio = window.clienteData.domicilio || {};
+      window.clienteData.domicilio.status = 'COMPLETE';
+    }
   });
 }
 
