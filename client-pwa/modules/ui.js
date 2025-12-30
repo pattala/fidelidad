@@ -32,7 +32,10 @@ export function showToast(message, type = 'info', duration = 6000) {
 
 export function showScreen(screenId) {
   console.log('[UI] showScreen:', screenId);
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = ''; // 🛑 CLEANUP: Remove inline styles set during onboarding
+  });
   const target = document.getElementById(screenId);
   if (target) target.classList.add('active');
   else console.error(`[UI ShowScreen] No existe #${screenId}`);
@@ -1122,7 +1125,16 @@ export async function openInboxModal() {
         }
         // Si NO hay URL, simplemente cerramos el modal (ya se marcó leído)
         else {
-          // Opcional: Expandir
+          // Lógica de "Despliegue" (Accordion)
+          // Colapsar otros (opcional, si queremos accordion estricto)
+          /* 
+          container.querySelectorAll('.inbox-item.expanded').forEach(other => {
+             if (other !== item) other.classList.remove('expanded');
+          }); 
+          */
+
+          // Toggle actual
+          item.classList.toggle('expanded');
         }
       };
 

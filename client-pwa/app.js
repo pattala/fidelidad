@@ -1102,7 +1102,16 @@ async function main() {
 
                   const db = firebase.firestore();
                   db.collection('clientes').where('authUID', '==', user.uid).limit(1).get().then(qs => {
-                    if (!qs.empty) qs.docs[0].ref.update({ 'config.geoEnabled': true, 'config.geoUpdatedAt': new Date().toISOString() });
+                    if (!qs.empty) {
+                      qs.docs[0].ref.update({
+                        'config.geoEnabled': true,
+                        'config.geoUpdatedAt': new Date().toISOString(),
+                        'ubicacion.lat': pos.coords.latitude,
+                        'ubicacion.lng': pos.coords.longitude,
+                        'ubicacion.accuracy': pos.coords.accuracy,
+                        'ubicacion.timestamp': new Date().toISOString()
+                      });
+                    }
                   }).catch(e => console.warn(e));
                 } catch (e) { console.error('Geo logic err', e); }
               },
