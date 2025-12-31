@@ -142,6 +142,7 @@ function renderInboxList(items) {
   if (!data.length) { list.innerHTML = ''; return; }
 
   list.innerHTML = data.map(it => {
+    console.log('[RENDER ITEM DEBUG]', it.id, 'Title:', it.title, 'Body:', it.body, 'Cuerpo:', it.cuerpo);
     const sentAt = it.sentAt ? (it.sentAt.toDate ? it.sentAt.toDate() : new Date(it.sentAt)) : null;
     const dateTxt = sentAt ? sentAt.toLocaleString() : '';
     const isRead = !!it.read;
