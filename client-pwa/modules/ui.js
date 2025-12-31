@@ -27,7 +27,12 @@ export function showToast(message, type = 'info', duration = 6000) {
   toast.className = `toast ${type}`;
   toast.textContent = message;
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), duration);
+
+  // Auto-dismiss fix
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => toast.remove(), 500);
+  }, duration);
 }
 
 export function showScreen(screenId) {
