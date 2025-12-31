@@ -179,6 +179,8 @@ export default async function handler(req, res) {
             tx.set(inboxRef, {
                 title: inboxTitle,
                 body: inboxBody,
+                titulo: inboxTitle, // ⚡ FIX: Compatibilidad UI
+                cuerpo: inboxBody,  // ⚡ FIX: Compatibilidad UI
                 ts: Date.now(),
                 sentAt: admin.firestore.FieldValue.serverTimestamp(),
                 tipo: inboxType, // Para ícono en UI

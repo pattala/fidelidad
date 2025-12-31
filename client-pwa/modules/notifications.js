@@ -544,8 +544,8 @@ export async function initDomicilioForm() {
 
         // 5. Update UI
         // Dispatch event so UI.js updates profile card immediately
-        const event = new CustomEvent('rampet:address:dismissed');
-        document.dispatchEvent(event);
+        document.dispatchEvent(new CustomEvent('rampet:address:dismissed'));
+        document.dispatchEvent(new CustomEvent('rampet:address-saved')); // ⚡ NEW: Signal for App.js to close card correctly
 
         // Force reload global data or wait for storage sync?
         // UI.js listens to onSnapshot, so it should update auto.

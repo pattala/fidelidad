@@ -141,7 +141,12 @@ function renderInboxList(items) {
   empty.style.display = data.length ? 'none' : 'block';
   if (!data.length) { list.innerHTML = ''; return; }
 
-  list.innerHTML = data.map(it => {
+  list.innerHTML = data.map((it, idx) => {
+    // DEBUG: Mostrar toast con el primer item para verificar qué llega
+    if (idx === 0) {
+      console.log('Top Inbox Item:', it);
+      UI.showToast(`[DEBUG] Item: ${it.title || 'SIN_TITULO'}`, 'info');
+    }
     // Original Logic 0db4b1f
     const sentAt = it.sentAt ? (it.sentAt.toDate ? it.sentAt.toDate() : new Date(it.sentAt)) : null;
     const dateTxt = sentAt ? sentAt.toLocaleString() : '';
@@ -526,7 +531,10 @@ function setupMainAppScreenListeners() {
   on('profile-close', 'click', restoreAddressCard);
   on('prof-cancel', 'click', restoreAddressCard);
   on('address-cancel', 'click', restoreAddressCard);
-  on('address-save', 'click', async () => { setTimeout(restoreAddressCard, 500); });
+  // on('address-save', 'click', ... ) -> REMOVED (Handled by notifications.js event)
+  document.addEventListener('rampet:address-saved', () => {
+    setTimeout(restoreAddressCard, 500);
+  });
 
 
   // Logout
