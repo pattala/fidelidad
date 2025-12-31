@@ -134,7 +134,10 @@ function renderInboxList(items) {
     return a.read ? 1 : -1;
   });
 
+  console.log('[DEBUG] items received in renderInboxList:', items);
   const data = items.filter(itemMatchesFilter);
+  console.log('[DEBUG] items after filter:', data);
+
   empty.style.display = data.length ? 'none' : 'block';
   if (!data.length) { list.innerHTML = ''; return; }
 
@@ -258,9 +261,28 @@ async function fetchInboxBatchUnified() {
   }
 }
 async function listenInboxRealtime() {
-  // 🛑 DESHABILITADO: La lógica de UI y notificaciones se centraliza en ui.js / renderMainScreen
-  // para evitar conflicto de "dos choferes" manejando la campanita.
-  return () => { };
+  const clienteRef = await resolveClienteRef();
+  if (!clienteRef) { console.warn('[INBOX] No clienteRef for realtime'); return () => { }; }
+
+  console.log('[INBOX] Subscribing to:', clienteRef.path);
+
+  // Solicitamos orden descendente por fecha
+  const q = clienteRef.collection('inbox').orderBy('sentAt', 'desc').limit(50);
+
+  return q.onSnapshot(snap => {
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    console.log('[INBOX REFACTOR] Realtime Update. Items:', items.length);
+    items.forEach((it, i) => {
+      console.log(`[INBOX ITEM ${i}] ID:${it.id} Type:${it.type || it.tipo} Cat:${it.category || it.categoria} Title:${it.title} Body:${it.body} Cuerpo:${it.cuerpo}`);
+    });
+
+    inboxLastSnapshot = items;
+    // Solo renderizar si el modal está abierto para optimizar
+    const modal = document.getElementById('inbox-modal');
+    if (modal && modal.style.display !== 'none') {
+      renderInboxList(items);
+    }
+  }, err => console.warn('[INBOX] Listener Error:', err));
 }
 function wireInboxModal() {
   const modal = document.getElementById('inbox-modal');
