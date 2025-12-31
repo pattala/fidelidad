@@ -104,7 +104,7 @@ let inboxUnsub = null;
 function normalizeCategory(v) {
   if (!v) return '';
   const x = String(v).toLowerCase();
-  if (['punto', 'puntos', 'movimientos', 'historial'].includes(x)) return 'puntos';
+  if (['punto', 'puntos', 'movimientos', 'historial', 'premio', 'premios'].includes(x)) return 'puntos';
   if (['promo', 'promos', 'promoción', 'promocion', 'campaña', 'campanas', 'campaña', 'campañas'].includes(x)) return 'promos';
   if (['otro', 'otros', 'general', 'aviso', 'avisos'].includes(x)) return 'otros';
   return x;
@@ -161,11 +161,11 @@ function renderInboxList(items) {
             </div>
             
             <div class="inbox-body-preview" style="color:#666; font-size:0.9rem; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">
-              ${(it.cuerpo || it.body || it.message || it.texto || it.description || it.content || it.detail || it.details || it.summary || 'Sin contenido').substring(0, 60)}${(it.cuerpo || it.body || it.message || it.texto || it.description || it.content || it.detail || it.details || it.summary || '').length > 60 ? '...' : ''}
+              ${(it.body || it.cuerpo || it.message || it.description || 'Sin contenido').substring(0, 60)}${(it.body || it.cuerpo || it.message || it.description || '').length > 60 ? '...' : ''}
             </div>
             
             <div class="inbox-body-full" style="display:none; color:#333; margin-top:8px; line-height:1.4; border-top:1px solid #eee; padding-top:8px; white-space:pre-wrap;">
-              ${it.cuerpo || it.body || it.message || it.texto || it.description || it.content || it.detail || it.details || it.summary || 'Sin contenido'}
+              ${it.body || it.cuerpo || it.message || it.description || 'Sin contenido'}
             </div>
 
           </div>

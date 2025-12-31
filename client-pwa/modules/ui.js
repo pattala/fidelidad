@@ -92,9 +92,13 @@ export function renderMainScreen(clienteData, premiosData, campanasData = [], op
   // -- LOGICA NOTIFICACIONES (REALTIME) --
   // Si ya tenemos suscripción, no la duplicamos. Si cambió el usuario, podríamos reiniciar,
   // pero por simplicidad asumimos SPA simple.
-  if (!unsubscribeInbox && clienteData?.authUID) {
+  if (!unsubscribeInbox) {
     let _firstLoad = true;
-    unsubscribeInbox = Data.subscribeToUnreadInbox(clienteData.authUID, (snap) => {
+    // FIX: Pass authUID if available, otherwise Data.js might find it or we wait.
+    // Don't block entirely on clienteData.authUID to avoid race conditions.
+    const uid = clienteData?.authUID || firebase.auth().currentUser?.uid;
+
+    unsubscribeInbox = Data.subscribeToUnreadInbox(uid, (snap) => {
       // FIX: Data.js sends a QuerySnapshot, not (count, changes)
       const count = snap.size;
       const changes = snap.docChanges();
