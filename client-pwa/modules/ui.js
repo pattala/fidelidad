@@ -829,7 +829,14 @@ document.getElementById('address-save')?.addEventListener('click', async () => {
 
     // UI Feedback
     const card = document.getElementById('address-card');
-    if (card) card.style.display = 'none'; // Ocultar form tras guardar
+    if (card) card.style.display = 'none';
+
+    // FORCE HIDE BANNER: Immediately hide the mission card and mark as forced hidden
+    const missionCard = document.getElementById('mission-address-card');
+    if (missionCard) {
+      missionCard.style.display = 'none';
+      missionCard.style.setProperty('display', 'none', 'important');
+    }
 
     showToast('Domicilio guardado. ¡Gracias!', 'success');
 
