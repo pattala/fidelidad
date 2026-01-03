@@ -1060,7 +1060,10 @@ export async function openInboxModal() {
 
       let icon = '📢';
       let iconBg = '#f0f0f0';
-      const titleLower = (d.titulo || '').toLowerCase();
+      const rawTitle = d.titulo || d.title || 'Mensaje';
+      const rawBody = d.cuerpo || d.body || '';
+
+      const titleLower = rawTitle.toLowerCase();
 
       if (d.tipo === 'premio' || titleLower.includes('premio') || titleLower.includes('ganaste')) {
         icon = '🎁'; iconBg = '#f3e5f5';
@@ -1073,7 +1076,7 @@ export async function openInboxModal() {
       if (!d.read) item.classList.add('destacado');
 
       // Lógica de truncado manual para máxima robustez
-      const bodyText = d.cuerpo || '';
+      const bodyText = rawBody;
       const isLong = bodyText.length > 60;
       const shortText = isLong ? bodyText.substring(0, 60) + '...' : bodyText;
 
@@ -1085,7 +1088,7 @@ export async function openInboxModal() {
         </div>
         <div class="inbox-content-wrapper" style="flex:1; min-width:0;">
           <div class="inbox-title">
-            ${d.titulo || 'Mensaje'}
+            ${rawTitle}
             ${!d.read ? '<span class="chip-destacado">Nuevo</span>' : ''}
           </div>
           
