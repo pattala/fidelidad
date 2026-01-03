@@ -47,43 +47,6 @@ window.__reportState = async (where = '') => {
   console.groupEnd();
 };
 
-window.resetTestState = async () => {
-  if (!confirm('🛑 ¿RESET TOTAL de estado de prueba?\n\n- Borra LocalStorage (Cooldowns)\n- Resetea Config en Firestore (Geo/Notif)\n- Recarga la app')) return;
-
-  console.log('[QA] Iniciando Reset de Estado...');
-
-  // 1. Clear LocalStorage
-  const keys = ['notifState', 'geoState', 'fcmToken', 'geoPromptedRecent', 'installDismissed', 'notifSuppressUntil', 'geoSuppressUntil', 'pwaInstalled'];
-  keys.forEach(k => localStorage.removeItem(k));
-  console.log('[QA] LocalStorage Limpio.');
-
-  // 2. Reset Firestore Config
-  try {
-    const uid = auth.currentUser?.uid;
-    if (uid) {
-      const snap = await db.collection('clientes').where('authUID', '==', uid).limit(1).get();
-      if (!snap.empty) {
-        const ref = snap.docs[0].ref;
-        await ref.update({
-          'config.notifEnabled': false,
-          'config.geoEnabled': false,
-          'config.addressPromptDismissed': false,
-          'config.notifUpdatedAt': firebase.firestore.FieldValue.delete(),
-          'config.geoUpdatedAt': firebase.firestore.FieldValue.delete(),
-          'config.addressPromptDismissedAt': firebase.firestore.FieldValue.delete(),
-          'pwaInstalled': false
-        });
-        console.log('[QA] Firestore Reset OK.');
-      }
-    }
-  } catch (e) {
-    console.warn('[QA] Error reseteando Firestore (puede que no estés logueado o sin red):', e);
-  }
-
-  // 3. Reload
-  console.log('[QA] Recargando...');
-  setTimeout(() => location.reload(), 500);
-};
 
 // ──────────────────────────────────────────────────────────────
 // Badge campanita (se usa con mensajes del SW)
