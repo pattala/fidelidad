@@ -290,7 +290,8 @@ async function listenInboxRealtime() {
 
     // ⚡ ALWAYS Update Badge (Fix: Update count even if modal is closed)
     const unreadCount = items.filter(i => !i.read).length;
-    if (window.setBadgeCount) window.setBadgeCount(unreadCount);
+    // Fix: setBadgeCount is local to module, not on window
+    if (typeof setBadgeCount === 'function') setBadgeCount(unreadCount);
 
     // Solo renderizar si el modal está abierto para optimizar
     const modal = document.getElementById('inbox-modal');
@@ -863,12 +864,15 @@ function checkMissionStatus(hasAddress, dismissedOnServer) {
   // 2. Hide if address exists OR dismissed on server (though missions usually persist until done)
   // Strategy: Missions should persist unless completed. Dismissing logic might apply to "nagging banner", but Mission is "opportunity".
   // Let's hide if hasAddress is true.
+  // 2. Hide if address exists OR dismissed on server
   if (hasAddress) {
+    console.log('[Mission] Hiding card (Has Address)');
     card.style.display = 'none';
     return;
   }
 
   // 3. Show Mission
+  console.log('[Mission] Showing card (No Address)');
   card.style.display = 'block';
 
   // 4. Wire Button (Reuse logic: open address card)
@@ -895,6 +899,10 @@ function checkMissionStatus(hasAddress, dismissedOnServer) {
 async function setupAddressSection() {
   const banner = document.getElementById('address-banner');
   const card = document.getElementById('address-card');
+
+  // 🛡️ Safe Init: Hide mission card by default to prevent flash/wrong state
+  const missionCard = document.getElementById('mission-address-card');
+  if (missionCard) missionCard.style.display = 'none';
 
   // Banner: solo abrir la card (el resto lo maneja notifications.js)
   if (banner && !banner.dataset.wired) {
