@@ -17,35 +17,41 @@ import {
 window.__RAMPET_DEBUG = true;
 window.__BUILD_ID = 'pwa-2.1.7-hybrid-passive';
 function d(tag, ...args) { if (window.__RAMPET_DEBUG) console.log(`[DBG][${window.__BUILD_ID}] ${tag}`, ...args); }
-window.__reportState = async (where = '') => {
+// 🔍 DIAGNÓSTICO ESTADO (Consola)
+window.printStateDiagnostic = async (where = '') => {
   const notifPerm = (window.Notification?.permission) || 'n/a';
   let swReady = false;
   try { swReady = !!(await navigator.serviceWorker?.getRegistration?.('/')); } catch { }
-  const fcm = localStorage.getItem('fcmToken') ? 'PRESENT' : 'MISSING';
+  const fcmToken = localStorage.getItem('fcmToken') ? 'PRESENT' : 'MISSING';
   const lsState = localStorage.getItem('notifState') || 'null';
+
   let geo = 'n/a';
   try { if (navigator.permissions?.query) geo = (await navigator.permissions.query({ name: 'geolocation' })).state; } catch { }
+
+  // Inbox Stats
+  const inbox = window.inboxLastSnapshot || [];
+  const total = inbox.length;
+  const unread = inbox.filter(m => !m.read).length;
+  const read = total - unread;
 
   console.group(`🔍 DIAGNÓSTICO ESTADO [${where}]`);
   console.table({
     'Notif Permission': notifPerm,
-    'FCM Token': fcm,
+    'FCM Token': fcmToken,
     'LS State': lsState,
     'SW Ready': swReady,
     'Geo Permission': geo,
-    'Conf Notif Days': window.APP_CONFIG?.features?.notifSilenceDays ?? 'default',
-    'Conf Geo Days': window.APP_CONFIG?.features?.geoCooldownDays ?? '60',
-    'LS Notif Blocked': localStorage.getItem('notifSuppressUntil')
-      ? new Date(+localStorage.getItem('notifSuppressUntil')).toLocaleString()
-      : 'none',
-    'LS Geo Blocked': localStorage.getItem('geoSuppressUntil')
-      ? new Date(+localStorage.getItem('geoSuppressUntil')).toLocaleString()
-      : 'none',
+    'Messages Total': total,
+    'Messages Unread': unread,
+    'Messages Read': read,
+    'Address Banner': document.getElementById('mission-address-card')?.style.display === 'none' ? 'Hidden' : 'Visible',
+    'Session Deferred': sessionStorage.getItem('missionAddressDeferred') === '1' ? 'YES' : 'NO',
     'Timestamp': new Date().toISOString()
   });
   console.groupEnd();
-  console.groupEnd();
 };
+// Alias for compatibility
+window.__reportState = window.printStateDiagnostic;
 
 
 // ──────────────────────────────────────────────────────────────
@@ -292,6 +298,9 @@ async function listenInboxRealtime() {
     const unreadCount = items.filter(i => !i.read).length;
     // Fix: setBadgeCount is local to module, not on window
     if (typeof setBadgeCount === 'function') setBadgeCount(unreadCount);
+
+    // Call Diagnostic once loaded
+    if (window.printStateDiagnostic) window.printStateDiagnostic();
 
     // Solo renderizar si el modal está abierto para optimizar
     const modal = document.getElementById('inbox-modal');
@@ -854,29 +863,32 @@ function wireAddressDatalists(prefix = 'dom-') {
 function checkMissionStatus(hasAddress, dismissedOnServer) {
   const card = document.getElementById('mission-address-card');
   const btn = document.getElementById('mission-address-btn');
+  const btnLater = document.getElementById('mission-address-later');
   const pointsEl = document.getElementById('mission-address-points');
-  if (!card || !btn) return;
 
-  // 1. Config Check
+  if (!card) return;
+
+  // 1. Config Check & Dynamic Points
   const points = window.GAMIFICATION_CONFIG?.pointsForAddress || 50;
-  if (pointsEl) pointsEl.textContent = points;
+  // Dynamic Title Update
+  const titleH3 = card.querySelector('h3');
+  if (titleH3) titleH3.textContent = `🎯 Ganá ${points} puntos`;
 
-  // 2. Hide if address exists OR dismissed on server (though missions usually persist until done)
-  // Strategy: Missions should persist unless completed. Dismissing logic might apply to "nagging banner", but Mission is "opportunity".
-  // Let's hide if hasAddress is true.
-  // 2. Hide if address exists OR dismissed on server
-  if (hasAddress) {
-    console.log('[Mission] Hiding card (Has Address)');
+  // 2. Hide if address exists OR dismissed on server OR deferred in session
+  const isDeferred = sessionStorage.getItem('missionAddressDeferred') === '1';
+
+  if (hasAddress || dismissedOnServer || isDeferred) {
+    console.log('[Mission] Hiding card. Reason:', { hasAddress, dismissedOnServer, isDeferred });
     card.style.display = 'none';
     return;
   }
 
   // 3. Show Mission
-  console.log('[Mission] Showing card (No Address)');
+  console.log('[Mission] Showing card (No Address & Not Deferred)');
   card.style.display = 'block';
 
-  // 4. Wire Button (Reuse logic: open address card)
-  if (!btn._wired) {
+  // 4. Wire "Completar ahora"
+  if (btn && !btn._wired) {
     btn._wired = true;
     btn.addEventListener('click', () => {
       const addressCard = document.getElementById('address-card');
@@ -886,9 +898,21 @@ function checkMissionStatus(hasAddress, dismissedOnServer) {
         try { window.scrollTo({ top: addressCard.offsetTop - 60, behavior: 'smooth' }); } catch { }
       }
       if (banner) banner.style.display = 'none';
+      // Hide mission card when acting on it
+      card.style.display = 'none';
 
-      // Init form dependencies if needed
       import('./modules/notifications.js').then(mod => mod.initDomicilioForm?.()).catch(() => { });
+    });
+  }
+
+  // 5. Wire "Más tarde"
+  if (btnLater && !btnLater._wired) {
+    btnLater._wired = true;
+    btnLater.addEventListener('click', (e) => {
+      e.preventDefault();
+      console.log('[Mission] Deferring for session');
+      sessionStorage.setItem('missionAddressDeferred', '1');
+      card.style.display = 'none';
     });
   }
 }
