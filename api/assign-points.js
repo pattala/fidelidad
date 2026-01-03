@@ -167,13 +167,17 @@ export default async function handler(req, res) {
             let inboxType = "system";
 
             if (reason === 'profile_address') {
-                inboxTitle = "🎁 Premio por Domicilio";
-                inboxBody = `¡Gracias por completar tu perfil! Ganaste ${points} puntos.`;
+                inboxTitle = `🎁 ¡Sumaste ${points} Puntos!`;
+                inboxBody = `Por completar tu domicilio.`;
                 inboxType = "premio";
             } else if (reason === 'welcome_signup') {
-                inboxTitle = "👋 ¡Bienvenido!";
-                inboxBody = `Regalo de bienvenida: ${points} puntos para empezar.`;
+                inboxTitle = `👋 ¡Bienvenido! Sumaste ${points} Puntos`;
+                inboxBody = `Regalo de bienvenida para empezar.`;
                 inboxType = "premio";
+            } else {
+                // Manual / Generic
+                inboxTitle = `¡Sumaste ${points} Puntos!`;
+                inboxBody = `Se acreditaron en tu cuenta.`;
             }
 
             tx.set(inboxRef, {

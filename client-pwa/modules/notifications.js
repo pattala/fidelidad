@@ -208,23 +208,9 @@ export async function obtenerYGuardarToken() {
     const msgInstance = firebase.messaging();
     msgInstance.onMessage((payload) => {
       console.log('[FCM] Foreground Message (Main):', payload);
-
-      // ESTRATEGIA v3: Forzar Popup Nativo en Windows/Android incluso en Primer Plano.
-      // Esto asegura que el usuario vea el cartelito negro del sistema.
-      const title = payload.notification?.title || payload.data?.title || 'Notificación';
-      const body = payload.notification?.body || payload.data?.body || '';
-      const icon = payload.notification?.icon || payload.data?.icon || '/images/mi_logo_192.png';
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(reg => {
-          reg.showNotification(title, {
-            body: body,
-            icon: icon,
-            tag: 'renpet-foreground-force', // Tag único para evitar duplicados si el SW ya lo mostró
-            data: payload.data
-          });
-        }).catch(err => console.error('[FCM] Error forzando popup nativo:', err));
-      }
+      // ESTRATEGIA v4: No forzamos nada visual aquí. 
+      // Dejamos que el Service Worker se encargue si quiere mostrar algo, 
+      // o que el usuario vea el badge. Evitamos duplicados.
     });
 
     toast('Notificaciones Activas ✅', 'success');
