@@ -162,22 +162,39 @@ export default async function handler(req, res) {
 
             // ⚡ FIX: Crear mensaje en Inbox para que salga en la campanita
             const inboxRef = doc.ref.collection('inbox').doc();
-            let inboxTitle = "¡Sumaste Puntos!";
-            let inboxBody = `Tenés ${points} puntos nuevos.`;
+            // 🔄 TEMPLATE LOGIC (Backend Source of Truth)
+            let inboxTitle = `¡Sumaste ${points} Puntos!`;
+            let inboxBody = `Se acreditaron en tu cuenta.`;
             let inboxType = "system";
 
-            if (reason === 'profile_address') {
-                inboxTitle = `🎁 ¡Sumaste ${points} Puntos!`;
-                inboxBody = `Por completar tu domicilio.`;
-                inboxType = "premio";
-            } else if (reason === 'welcome_signup') {
-                inboxTitle = `👋 ¡Bienvenido! Sumaste ${points} Puntos`;
-                inboxBody = `Regalo de bienvenida para empezar.`;
-                inboxType = "premio";
-            } else {
-                // Manual / Generic
-                inboxTitle = `¡Sumaste ${points} Puntos!`;
-                inboxBody = `Se acreditaron en tu cuenta.`;
+            // Try to fetch specific template if possible, or use hardcoded "Golden Path" matches
+            try {
+                // Determine Template ID based on reason
+                let tplId = 'bono_manual';
+                if (reason === 'welcome_signup') tplId = 'bienvenida';
+                if (reason === 'profile_address') tplId = 'premio_domicilio'; // Hypothetical
+
+                const tplSnap = await db.collection('plantillas').doc(tplId).get();
+                if (tplSnap.exists) {
+                    const tpl = tplSnap.data();
+                    // Replace placeholders
+                    if (tpl.titulo_push) inboxTitle = tpl.titulo_push.replace('{puntos}', points);
+                    if (tpl.cuerpo_push) inboxBody = tpl.cuerpo_push.replace('{puntos}', points);
+                    inboxType = "premio"; // Assume prize
+                } else {
+                    // Fallbacks (User specific requests)
+                    if (reason === 'profile_address') {
+                        inboxTitle = `🎁 ¡Sumaste ${points} Puntos!`;
+                        inboxBody = `Gracias por completar tu domicilio.`;
+                        inboxType = "premio";
+                    } else if (reason === 'welcome_signup') {
+                        inboxTitle = `👋 ¡Bienvenido! Sumaste ${points} Puntos`;
+                        inboxBody = `Regalo de bienvenida para empezar.`;
+                        inboxType = "premio";
+                    }
+                }
+            } catch (e) {
+                console.warn('Template fetch failed, using fallback', e);
             }
 
             tx.set(inboxRef, {

@@ -160,11 +160,10 @@ export async function obtenerYGuardarToken() {
         name === 'InvalidStateError' ||
         msg.includes('createObjectStore') // Corrupción interna
       ) {
-        console.error('[FCM] 🔥 ERROR CRITICO DE DB DETECTADO 🔥');
-        await hardResetFcmStores();
-        alert('Hubo un error interno en el navegador. La aplicación se reiniciará para corregirlo.');
-        location.reload();
-        return; // Stop execution
+        console.warn('[FCM] ⚠️ Error de DB detectado. Se intentará continuar sin reiniciar agresivamente.', msg);
+        // await hardResetFcmStores(); // ⛔ DISABLE AGGRESSIVE RESET
+        // location.reload();
+        return;
       }
 
       // B) Bloqueo de Privacidad (Edge/Incognito)

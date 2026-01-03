@@ -287,21 +287,18 @@ async function listenInboxRealtime() {
 
   return q.onSnapshot(snap => {
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    console.log('[INBOX REFACTOR] Realtime Update. Items:', items.length);
-    items.forEach((it, i) => {
-      console.log(`[INBOX ITEM ${i}] ID:${it.id} Type:${it.type || it.tipo} Cat:${it.category || it.categoria} Title:${it.title} Body:${it.body} Cuerpo:${it.cuerpo}`);
-    });
-
-    inboxLastSnapshot = items;
-
-    // ⚡ ALWAYS Update Badge (Fix: Update count even if modal is closed)
-    // Defensive: Anything NOT explicitly read is UNREAD. Handles legacy/undefined.
+    // ⚡ ALWAYS Update Badge
     const unreadCount = items.filter(i => i.read !== true).length;
-    // Fix: setBadgeCount is local to module, not on window
-    if (typeof setBadgeCount === 'function') setBadgeCount(unreadCount);
 
-    // Call Diagnostic once loaded
-    if (window.printStateDiagnostic) window.printStateDiagnostic();
+    // Attempt local or global setBadge
+    if (typeof setBadgeCount === 'function') {
+      setBadgeCount(unreadCount);
+    } else if (window.setBadgeCount) {
+      window.setBadgeCount(unreadCount);
+    }
+
+    // Call Diagnostic once loaded (silent update)
+    // if (window.printStateDiagnostic) window.printStateDiagnostic();
 
     // Solo renderizar si el modal está abierto para optimizar
     const modal = document.getElementById('inbox-modal');
