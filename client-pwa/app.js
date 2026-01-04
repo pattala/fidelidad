@@ -903,6 +903,9 @@ function refreshMissionState(hasAddress, dismissedOnServer) {
   // Logic: Show ONLY if no address, not dismissed server-side, not deferred session, AND not in cooldown
   const shouldShow = (!hasAddress && !dismissedOnServer && !isDeferred && !isInCooldown);
 
+  // 🔍 DEEP DEBUG (User Request)
+  console.log('[Mission Logic Trace]', { hasAddress, dismissedOnServer, isDeferred, isInCooldown, shouldShow });
+
   if (!shouldShow) {
     // FORCE HIDE - No conditional checking
     // This ensures that even if card is 'none', we still check/hide the global banner
@@ -1270,9 +1273,9 @@ async function main() {
               hasAddr = !!comp.barrio;
               console.log(`3. Regla CABA (Barrio): ${hasAddr ? 'OK' : 'Falta Barrio'}`);
             } else if (p === 'buenos aires' || p.includes('buenos aires')) {
-              // Regla BSAS: Requiere Localidad O Partido
-              hasAddr = !!(comp.localidad || comp.partido);
-              console.log(`3. Regla BSAS (Loc/Part): ${hasAddr ? 'OK' : 'Falta Partido/Localidad'}`);
+              // Regla BSAS: Requiere Localidad Y Partido (AMBOS)
+              hasAddr = !!(comp.localidad && comp.partido);
+              console.log(`3. Regla BSAS (Partido+Loc): ${hasAddr ? 'OK' : 'Falta Partido o Localidad'}`);
             } else {
               // Regla Interior: Solo Calle+Num+Prov (Resto opcional/libre)
               hasAddr = true;
