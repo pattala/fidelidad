@@ -14,7 +14,11 @@
             "destination": "/admin-panel/$1"
         },
         {
-            "source": "/(.*)",
+            "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|json|svg|woff2?))",
+            "destination": "/client-pwa/$1"
+        },
+        {
+            "source": "/((?!api/|admin|admin/).*)",
             "destination": "/client-pwa/index.html"
         }
     ]
