@@ -907,6 +907,9 @@ function refreshMissionState(hasAddress, dismissedOnServer) {
     if (card.style.display !== 'none') {
       console.log('[Mission] State Change: Hiding card.', { hasAddress, dismissedOnServer, isDeferred, isInCooldown });
       card.style.display = 'none';
+      // ALSO HIDE THE GLOBAL BANNER
+      const globalBanner = document.getElementById('address-banner');
+      if (globalBanner) globalBanner.style.display = 'none';
     }
   } else {
     if (card.style.display !== 'block') {
