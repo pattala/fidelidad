@@ -1248,9 +1248,9 @@ async function main() {
           window.appClienteData = d;
 
           // Re-evaluate mission status with FRESH data
-          // Re-evaluate mission status with FRESH data
-          // Re-evaluate mission status with FRESH data
           const comp = d.domicilio?.components;
+          console.log('[ADDR SPY]', { comp, val: !!(comp && comp.calle && comp.numero && comp.provincia && (comp.localidad || comp.barrio)) });
+
           // STRICT CHECK (User Request): Calle + Numero + Provincia + (Localidad OR Barrio)
           const hasAddr = !!(comp && comp.calle && comp.numero && comp.provincia && (comp.localidad || comp.barrio));
           const dismissed = !!(d.config?.addressPromptDismissed || d['config.addressPromptDismissed']);

@@ -257,6 +257,7 @@ export async function initNotificationsOnce() {
 
   // 2. Check Permission State
   if (Notification.permission === 'granted') {
+    show($('notif-prompt-card'), false); // ⚡ FIX: Hide banner if already granted (Logic Fix)
     debugLog('Init', 'Permiso ya concedido. Sincronizando token silenciosamente...');
     try {
       // Auto-healing: Si dice granted pero no tenemos token local, intentamos recuperar
