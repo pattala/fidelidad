@@ -26,7 +26,8 @@ const messaging = firebase.messaging();
    Hybrid Backup: Raw Push Listener
    Colocado AL INICIO para asegurar registro aunque Firebase falle init.
    ────────────────────────────────────────────────────────────── */
-self.addEventListener('push', async (event) => {
+// Fix: Wrap ENTIRE async operation in waitUntil to prevent "InvalidStateError"
+event.waitUntil((async () => {
   let payload;
   try { payload = event.data.json(); } catch (e) { return; }
 
@@ -59,7 +60,6 @@ self.addEventListener('push', async (event) => {
 
       // -- OPCIONES AGRESIVAS DE PERSISTENCIA --
       renotify: true,           // Fuerza vibración/sonido aunque sea el mismo tag
-      renotify: true,           // Fuerza vibración/sonido aunque sea el mismo tag
       requireInteraction: false, // Se va solo (default SO)
       actions: [
         { action: 'open', title: 'Ver Mensaje' }
@@ -67,15 +67,11 @@ self.addEventListener('push', async (event) => {
     };
     if (d.badge) options.badge = d.badge;
 
-    event.waitUntil(
-      self.registration.showNotification(title, options)
-        .then(() => {
-          // Opcional: Avisar a clientes que llegó
-          broadcastLog('🔔 Notification shown via Raw Push (Background)', d);
-        })
-    );
+    await self.registration.showNotification(title, options);
+    // Opcional: Avisar a clientes que llegó
+    broadcastLog('🔔 Notification shown via Raw Push (Background)', d);
   }
-});
+})());
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;

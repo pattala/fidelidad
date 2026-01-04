@@ -102,6 +102,7 @@ export default async function handler(req, res) {
               titulo, cuerpo,
               title: titulo, body: cuerpo, // ⚡ FIX: Legacy/New compat
               read: false, // 🔔 FIX: Required for unread count
+              sentAt: admin.firestore.FieldValue.serverTimestamp(), // ⚡ FIX: Required for orderBy('sentAt')
               meta: { jobId, requestedBy }
             });
         }
