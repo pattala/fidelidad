@@ -904,13 +904,14 @@ function refreshMissionState(hasAddress, dismissedOnServer) {
   const shouldShow = (!hasAddress && !dismissedOnServer && !isDeferred && !isInCooldown);
 
   if (!shouldShow) {
-    if (card.style.display !== 'none') {
-      console.log('[Mission] State Change: Hiding card.', { hasAddress, dismissedOnServer, isDeferred, isInCooldown });
-      card.style.display = 'none';
-      // ALSO HIDE THE GLOBAL BANNER
-      const globalBanner = document.getElementById('address-banner');
-      if (globalBanner) globalBanner.style.display = 'none';
-    }
+    // FORCE HIDE - No conditional checking
+    // This ensures that even if card is 'none', we still check/hide the global banner
+    card.style.display = 'none';
+    const globalBanner = document.getElementById('address-banner');
+    if (globalBanner) globalBanner.style.display = 'none';
+
+    // Only log state change if it was visible (to avoid spam, optional)
+    // console.log('[Mission] Ensure Hidden.', { hasAddress, dismissedOnServer });
   } else {
     if (card.style.display !== 'block') {
       console.log('[Mission] State Change: Showing card.', { hasAddress, dismissedOnServer, isDeferred, isInCooldown });

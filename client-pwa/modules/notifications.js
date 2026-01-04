@@ -379,6 +379,8 @@ export async function checkAndPromptGeo() {
   if (dbConfig.geoEnabled === true) {
     console.log('[Geo] DB says enabled. Silent check local state.');
     localStorage.setItem('geoState', 'active');
+    // 🛡️ EXPLICIT HIDE to prevent Ghost Banner
+    show($('notif-prompt-card'), false);
     return;
   }
 
