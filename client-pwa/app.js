@@ -907,11 +907,12 @@ function refreshMissionState(hasAddress, dismissedOnServer) {
   console.log('[Mission Logic Trace]', { hasAddress, dismissedOnServer, isDeferred, isInCooldown, shouldShow });
 
   if (!shouldShow) {
-    // FORCE HIDE - No conditional checking
-    // This ensures that even if card is 'none', we still check/hide the global banner
-    card.style.display = 'none';
+    // FORCE HIDE (Nuclear Option)
+    // Use setProperty to inject !important, overriding any CSS or Inline styles
+    if (card) card.style.setProperty('display', 'none', 'important');
+
     const globalBanner = document.getElementById('address-banner');
-    if (globalBanner) globalBanner.style.display = 'none';
+    if (globalBanner) globalBanner.style.setProperty('display', 'none', 'important');
 
     // Only log state change if it was visible (to avoid spam, optional)
     // console.log('[Mission] Ensure Hidden.', { hasAddress, dismissedOnServer });
